@@ -57,11 +57,12 @@ class Database(object):
         self.conn.commit()
 
     def create_provider_tables(self):
-
+        self.connect()
         self.execute(
             """ 
-            CREATE TABLE IF NOT EXISTS providers (
+            CREATE TABLE IF NOT EXISTS provider (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cnpj TEXT NOT NULL,
                 name TEXT NOT NULL,
                 description TEXT NOT NULL,
                 email TEXT NOT NULL,
@@ -70,6 +71,8 @@ class Database(object):
             )
             """
         )
+        self.commit()
+        self.close()
 
     def create_sale_tables(self):
         self.connect()
@@ -91,15 +94,16 @@ class Database(object):
 
         self.execute(
             """
-            CREATE TABLE IF NOT EXISTS products_sold(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                sale_id INTEGER NOT NULL,
+            CREATE TABLE IF NOT EXISTS products_sold (
+                sale_id PRIMARY KEY,
                 product_id INTEGER NOT NULL,
                 quantity INTEGER NOT NULL,
                 FOREIGN KEY(sale_id) REFERENCES sales(id) ON DELETE CASCADE,
                 FOREIGN KEY(product_id) REFERENCES products(id)
             )"""
         )
+        self.commit()
+
         self.close()
 
     def create_product_tables(self):
@@ -159,6 +163,7 @@ class Database(object):
             """
         )
         self.commit()
+
         self.close()
 
     def create_user_tables(self):
@@ -248,12 +253,16 @@ class Database(object):
 
         self.close()
 
+    def select_user_data_by_id(self, id):
+        self.connect()
+        self.execute("SELECT * FROM users WHERE id = ?", (id,))
+        user = self.fetch_one()
+        self.close()
+        return user
 
-
-    # ID DO CLIENTE
-    # PRODUTOS + 
-    # item_no_carrinho_1 + - x [1]
-    # item_no_carrinho_2 + - x [3]
-    # item_no_carrinho_3 + - x [5]
-
-    # IR PARA PAGAMENTO
+    def select_product_data_by_id(self, id):
+        self.connect()
+        self.execute("SELECT * FROM products WHERE id = ?", (id,))
+        product = self.fetch_one()
+        self.close()
+        return product

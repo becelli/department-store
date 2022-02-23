@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from model.classes.provider import Provider
 
 
 class Product(ABC):
@@ -8,7 +9,7 @@ class Product(ABC):
         description: str,
         fabrication: str,
         price: float,
-        provider: str,
+        provider: Provider,
         available: bool = True,
         id: int = None,
     ):
@@ -26,8 +27,8 @@ class Product(ABC):
             f"\nDescrição: {self._description}"
             f"\nFabricação: {self._fabrication}"
             f"\nPreço: {self._price}"
-            f"\nFornecedor: {self._provider}"
-            f"\nDisponível: {self._available}"
+            f"\nFornecedor: {self._provider.get_name()}"
+            f"\nDisponível: {'Sim' if self._available else 'Não'}"
         )
 
     @abstractmethod
@@ -75,3 +76,79 @@ class Product(ABC):
 
     def set_available(self, available):
         self._available = available
+
+
+class Food(Product):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        fabrication: str,
+        price: float,
+        provider: str,
+        is_available: bool = True,
+        id: int = None,
+    ):
+        super().__init__(
+            name, description, fabrication, price, provider, is_available, id
+        )
+
+    def calculate_value(self):
+        return self._price * 1.005
+
+
+class HomeAppliances(Product):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        fabrication: str,
+        price: float,
+        provider: str,
+        is_available: bool = True,
+        id: int = None,
+    ):
+        super().__init__(
+            name, description, fabrication, price, provider, is_available, id
+        )
+
+    def calculate_value(self):
+        return self._price * 1.02
+
+
+class Electronics(Product):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        fabrication: str,
+        price: float,
+        provider: str,
+        is_available: bool = True,
+        id: int = None,
+    ):
+        super().__init__(
+            name, description, fabrication, price, provider, is_available, id
+        )
+
+    def calculate_value(self):
+        return self._price * 1.045
+
+
+class Clothes(Product):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        fabrication: str,
+        price: float,
+        provider: str,
+        is_available: bool = True,
+        id: int = None,
+    ):
+        super().__init__(
+            name, description, fabrication, price, provider, is_available, id
+        )
+
+    def calculate_value(self):
+        return self._price * 1.0125

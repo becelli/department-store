@@ -1,14 +1,16 @@
+from model.classes.product import Product
+
+
 class SaleItem:
     def __init__(
         self,
-        product_id: int,
+        product: Product,
         quantity: int,
-        price: float,
+        # price: float, #TODO WONT BE IMPLEMENTED
         id: int = None,
     ):
-        self._product_id = product_id
+        self._product = product
         self._quantity = quantity
-        self._price = price
         self._id = id
 
     def __str__(self):
@@ -28,20 +30,14 @@ class SaleItem:
     def get_quantity(self):
         return self._quantity
 
-    def get_price(self):
-        return self._price
-
-    def set_id(self, id):
+    def _set_id(self, id):
         self._id = id
 
-    def set_product_id(self, product_id):
-        self._product_id = product_id
+    def set_product_id(self, product: Product):
+        self._product = product
 
     def set_quantity(self, quantity):
         self._quantity = quantity
 
-    def set_price(self, price):
-        self._price = price
-
     def calculate_total_value(self):
-        return self._quantity * self._price
+        return self._quantity * self.product.calculate_value()

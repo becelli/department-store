@@ -149,7 +149,10 @@ class Customer(User):
         self._is_golden = is_golden
 
     def __str__(self):
-        return super().__str__() + f"\n Cliente: {self._get_is_golden()}"
+        return (
+            super().__str__()
+            + f"\n Cliente Ouro: {'Sim' if self._get_is_golden() else 'Não'}"
+        )
 
     def get_is_golden(self):
         return self._is_golden
