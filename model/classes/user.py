@@ -10,7 +10,7 @@ class User(ABC):
         rg: str,
         birthdate: date,
         address: str,
-        cep: str,
+        zipcode: str,
         email: str,
         id: int = None,
     ):
@@ -20,7 +20,7 @@ class User(ABC):
         self._rg = rg
         self._birthdate = birthdate
         self._address = address
-        self._cep = cep
+        self._zipcode = zipcode
         self._email = email
         self._id = id
 
@@ -31,13 +31,13 @@ class User(ABC):
             f"\n RG: {self._get_rg()}"
             f"\n CPF: {self._get_cpf()}"
             f"\n Email: {self._get_email()}"
-            f"\n CEP: {self._get_cep()}"
+            f"\n CEP: {self._get_zipcode()}"
             f"\n Endereço: {self._get_address()}"
             f"\n Nascimento: {self._get_birthdate()}"
         )
 
     def get_name(self):
-        return self.__name
+        return self._name
 
     def get_id(self):
         return self._id
@@ -51,8 +51,8 @@ class User(ABC):
     def get_birthdate(self):
         return self._birthdate
 
-    def get_cep(self):
-        return self._cep
+    def get_zipcode(self):
+        return self._zipcode
 
     def get_email(self):
         return self._email
@@ -75,8 +75,8 @@ class User(ABC):
     def set_birthdate(self, birthdate: date):
         self._birthdate = birthdate
 
-    def set_cep(self, cep: str):
-        self._cep = cep
+    def set_zipcode(self, zipcode: str):
+        self._zipcode = zipcode
 
     def set_email(self, email: str):
         self._email = email
@@ -93,14 +93,14 @@ class Seller(User):
         rg: str,
         birthdate: date,
         address: str,
-        cep: str,
+        zipcode: str,
         email: str,
         salary: float,
         pis: str,
         admission_date: date,
         id: int = None,
     ):
-        super().__init__(name, cpf, rg, birthdate, address, cep, email, id)
+        super().__init__(name, cpf, rg, birthdate, address, zipcode, email, id)
         self._salary = salary
         self._pis = pis
         self._admission_date = admission_date
@@ -140,12 +140,12 @@ class Customer(User):
         rg: str,
         birthdate: date,
         address: str,
-        cep: str,
+        zipcode: str,
         email: str,
         is_golden: bool,
         id: int = None,
     ):
-        super().__init__(name, cpf, rg, birthdate, address, cep, email, id)
+        super().__init__(name, cpf, rg, birthdate, address, zipcode, email, id)
         self._is_golden = is_golden
 
     def __str__(self):

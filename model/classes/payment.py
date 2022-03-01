@@ -31,10 +31,10 @@ class CreditCard(Payment):
     def __init__(self, payment_type: str, name, flag, number: int, id: int = None):
         super().__init__(payment_type, id)
         self._payment_type = payment_type
-        self._id = id
         self._name = name
         self._flag = flag
         self._number = number
+        self._id = id
 
     def get_name(self):
         return self._name
@@ -65,8 +65,8 @@ class Pix(Payment):
     def __init__(self, payment_type: str, code: str, id: int = None):
         super().__init__(payment_type, id)
         self._payment_type = payment_type
-        self._id = id
         self._code = code
+        self._id = id
 
     def get_code(self):
         return self._code

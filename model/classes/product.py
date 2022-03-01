@@ -97,7 +97,7 @@ class Food(Product):
         return self._price * 1.005
 
 
-class HomeAppliances(Product):
+class HomeAppliance(Product):
     def __init__(
         self,
         name: str,
@@ -116,7 +116,7 @@ class HomeAppliances(Product):
         return self._price * 1.02
 
 
-class Electronics(Product):
+class Electronic(Product):
     def __init__(
         self,
         name: str,
@@ -135,7 +135,7 @@ class Electronics(Product):
         return self._price * 1.045
 
 
-class Clothes(Product):
+class Clothing(Product):
     def __init__(
         self,
         name: str,
