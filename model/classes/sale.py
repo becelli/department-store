@@ -89,7 +89,7 @@ class Sale:
     def get_discount(self):
         return self._discount
 
-    def get_payment_mathod(self):
+    def get_payment_method(self):
         return self._payment_mathod
 
     def set_id(self, id):

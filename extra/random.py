@@ -31,7 +31,7 @@ class RandomObjectInfo:
             is_available,
         ]
 
-    def HomeAppliance(self) -> pd.HomeAppliance:
+    def HomeAppliance(self) -> list:
         current_year = date.now().year
         name_home_apliances = self._random_home_devices_names()
         description_home_apliances = (
@@ -90,33 +90,33 @@ class RandomObjectInfo:
 
     def Customer(self) -> list:
         customer_name = self._names()
-        rg = self._nsize_num_as_str(11)  # cpf
-        cpf = self._nsize_num_as_str(9)  # rg
+        cpf = self._nsize_num_as_str(11)  # rg
+        rg = self._nsize_num_as_str(9)  # cpf
         date = self._date()
-        adress = self._random_street_name()
+        address = self._random_street_name()
         zip_code = self._nsize_num_as_str(5)
-        email = customer_name + (self._nsize_num_as_str(4)) + self._emails()
-        ouro = self._bool_rand()
+        email = customer_name + (self._nsize_num_as_str(5)) + self._emails()
+        golden = self._bool_rand()
         return [
             customer_name,
-            rg,
             cpf,
+            rg,
             date,
-            adress,
+            address,
             zip_code,
             email,
-            ouro,
+            golden,
         ]
 
     def Seller(self) -> list:
-        seller_name = (self._names(),)
+        seller_name = self._names()
         rg = self._nsize_num_as_str(11)  # cpf
         cpf = self._nsize_num_as_str(9)  # rg
         date = self._date()
-        adress = self._random_street_name()
+        address = self._random_street_name()
         zip_code = self._nsize_num_as_str(5)
-        email = seller_name + (self._nsize_num_as_str(4)) + self._emails()
-        salary = random.randint(1000 - 4000)
+        email = seller_name + self._nsize_num_as_str(4) + self._emails()
+        salary = random.randint(1000, 4000)
         pis = self._nsize_num_as_str(5)
         admission_date = self._date()
         return [
@@ -124,7 +124,7 @@ class RandomObjectInfo:
             rg,
             cpf,
             date,
-            adress,
+            address,
             zip_code,
             email,
             salary,
@@ -300,7 +300,7 @@ class RandomObjectInfo:
     def _random_product_description(self):
         description_product = [
             "da casa",
-            "de ouro",
+            "de golden",
             "gourmet",
             "de Minas",
             "nordestino",
@@ -408,10 +408,7 @@ class RandomObjectInfo:
         return ["Rua" + "" + random.choice(streets)]
 
     def _bool_rand(self):
-        rad = random.randint(1, 2)
-        if rad == 1:
-            return True
-        return [False]
+        return random.choice([True, False])
 
     def _card_flag(self) -> str:
         flags = ["Visa", "Mastercard", "American Express", "Hipercard", "Elo"]
@@ -420,12 +417,12 @@ class RandomObjectInfo:
     def _emails(self):
         emails = [
             "@gmail.com",
-            "@htomail.com",
+            "@hotmail.com",
             "@hao123.com",
             "@outlook.com",
             "@msn.com",
             "@baidu.com",
-            "@microsoft.com",
+            "@live.com",
         ]
         return random.choice(emails)
 
@@ -448,8 +445,8 @@ class RandomObjectInfo:
 
     # Generate random date as a string.
 
-    def _date(self):
-        dt = self._date_as_string()
+    def _date(self, y_min: int = 1950, y_max: int = 2003):
+        dt = self._date_as_string(y_min, y_max)
         return date.strptime(dt, "%Y-%m-%d")
 
     def _date_as_string(self, y_min: int = 1950, y_max: int = 2003):
@@ -613,3 +610,74 @@ class RandomObjectInfo:
             "Duchini",
         ]
         return f"{random.choice(firstnames)} {random.choice(lastnames)}"
+
+
+class RandomObject:
+    def __init__(self, product_db: str = "app.db", user_db: str = "app.db"):
+        self._product_db_name = product_db
+        self._user_db_name = user_db
+        self.data_source: RandomObjectInfo = RandomObjectInfo(product_db, user_db)
+
+    def Customer(self):
+        c = self.data_source.Customer()
+        return u.Customer(c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7])
+
+    def Seller(self):
+        s = self.data_source.Seller()
+        return u.Seller(s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7], s[8], s[9])
+
+    def Provider(self):
+        p = self.data_source.Provider()
+        return pr.Provider(p[0], p[1], p[2], p[3], p[4], p[5])
+
+    def Sale(self):
+        sl = self.data_source.Sale()
+        return s.Sale(sl[0], sl[1], sl[2], sl[3])
+
+    def Payment(self):
+        r = random.randint(0, 2)
+        if r == 0:
+            return self.Cash()
+        if r == 1:
+            return self.Credit_card()
+        if r == 2:
+            return self.Pix()
+
+    def Cash(self):
+        cs = self.data_source.Cash_payment()
+        return p.Cash(cs[0])
+
+    def Credit_card(self):
+        cc = self.data_source.Credit_card_payment()
+        return p.CreditCard(cc[0], cc[1], cc[2], cc[4])
+
+    def Pix(self):
+        px = self.data_source.Pix_payment()
+        return p.Pix(px[0], px[1])
+
+    def Product(self):
+        r = random.randint(0, 3)
+        if r == 0:
+            return self.Eletronic()
+        if r == 1:
+            return self.Food()
+        if r == 2:
+            return self.Clothing()
+        if r == 3:
+            return self.Home_appliance()
+
+    def Eletronic(self):
+        el = self.data_source.Electronic()
+        return pd.Electronic(el[0], el[1], el[2], el[3], el[4], el[5])
+
+    def Food(self):
+        el = self.data_source.Food()
+        return pd.Food(el[0], el[1], el[2], el[3], el[4], el[5])
+
+    def Home_appliance(self):
+        el = self.data_source.HomeAppliance()
+        return pd.HomeAppliance(el[0], el[1], el[2], el[3], el[4], el[5])
+
+    def Clothing(self):
+        el = self.data_source.Clothing()
+        return pd.Clothing(el[1], el[2], el[3], el[4], el[5])

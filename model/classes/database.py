@@ -36,11 +36,14 @@ class Database(object):
         """
         self.connection.close()
 
-    def execute(self, query: str):
+    def execute(self, query, params=None):
         """
         Execute a query.
         """
-        self.cursor.execute(query)
+        if params:
+            self.cursor.execute(query, params)
+        else:
+            self.cursor.execute(query)
 
     def fetch(self):
         """
@@ -85,38 +88,35 @@ class Database(object):
             """
             CREATE TABLE IF NOT EXISTS fashion (
                 id INTEGER PRIMARY KEY,
-                FOREIGN KEY(product_id) REFERENCES product(id)
-            """
+                FOREIGN KEY(id) REFERENCES product(id)
+            )"""
         )
         self.commit()
 
         # Electronics
         self.execute(
-            """
-            CREATE TABLE IF NOT EXISTS electronic (
+            """CREATE TABLE IF NOT EXISTS electronic (
                 id INTEGER PRIMARY KEY,
-                FOREIGN KEY(product_id) REFERENCES product(id)
-            """
+                FOREIGN KEY(id) REFERENCES product(id)
+            )"""
         )
         self.commit()
 
         # Food
         self.execute(
-            """
-            CREATE TABLE IF NOT EXISTS food (
+            """CREATE TABLE IF NOT EXISTS food (
                 id INTEGER PRIMARY KEY,
-                FOREIGN KEY(product_id) REFERENCES product(id)
-            """
+                FOREIGN KEY(id) REFERENCES product(id)
+            )"""
         )
         self.commit()
 
         # Home Appliances
         self.execute(
-            """
-            CREATE TABLE IF NOT EXISTS home_appliance (
+            """CREATE TABLE IF NOT EXISTS home_appliance (
                 id INTEGER PRIMARY KEY,
-                FOREIGN KEY(product_id) REFERENCES product(id)
-            """
+                FOREIGN KEY(id) REFERENCES product(id)
+            )"""
         )
         self.commit()
 
@@ -125,8 +125,7 @@ class Database(object):
     def create_user_tables(self):
         self.connect()
         self.execute(
-            """
-            CREATE TABLE IF NOT EXISTS user (
+            """CREATE TABLE IF NOT EXISTS user (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 type TEXT NOT NULL CHECK(type = 'customer' OR type = 'provider'),
                 name TEXT NOT NULL,
@@ -135,7 +134,8 @@ class Database(object):
                 birth_date DATE NOT NULL,
                 address TEXT NOT NULL,
                 zipcode TEXT NOT NULL,
-                email TEXT NOT NULL,
+                email TEXT NOT NULL
+            )
         """
         )
         self.commit()
@@ -147,7 +147,8 @@ class Database(object):
                 salary REAL NOT NULL,
                 pis TEXT NOT NULL,
                 admission_date TEXT NOT NULL,
-                FOREIGN KEY(user_id) REFERENCES user(id)
+                FOREIGN KEY(id) REFERENCES user(id)
+            )
             """
         )
         self.commit()
@@ -157,7 +158,8 @@ class Database(object):
             CREATE TABLE IF NOT EXISTS customer (
                 id INTEGER PRIMARY KEY,
                 is_golden_customer INTEGER NOT NULL,
-                FOREIGN KEY(user_id) REFERENCES user(id)
+                FOREIGN KEY(id) REFERENCES user(id)
+            )
             """
         )
         self.commit()
@@ -185,37 +187,29 @@ class Database(object):
     def create_sale_tables(self):
         self.connect()
         self.execute(
-            """CREATE TABLE IF NOT EXISTS national_vehicle (
-            plate CHAR(8) PRIMARY KEY,
-            state_taxes REAL NOT NULL DEFAULT 0.00,
-            FOREIGN KEY (plate) REFERENCES vehicle (plate) ON DELETE CASCADE
+            """CREATE TABLE IF NOT EXISTS sale (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                customer_id INTEGER NOT NULL,
+                seller_id INTEGER NOT NULL,
+                sell_date TEXT NOT NULL,
+                payment_method_id INTEGER NOT NULL,
+                FOREIGN KEY(seller_id) REFERENCES seller(id)
+                FOREIGN KEY(payment_method_id) REFERENCES payment_method(id)
             )"""
         )
-        self.execute(
-            """
-            CREATE TABLE IF NOT EXISTS sale (
-               id INTEGER PRIMARY KEY AUTOINCREMENT,
-               customer_id INTEGER NOT NULL,
-               seller_id INTEGER NOT NULL,
-               sell_date TEXT NOT NULL,
-               payment_method_id INTEGER NOT NULL,
-            """
-        )
-        #    FOREIGN KEY(seller_id) REFERENCES seller(id),
-        #    FOREIGN KEY(payment_mathod_id) REFERENCES payment_method(id)
         self.commit()
 
-        # self.execute(
-        #     """
-        #     CREATE TABLE IF NOT EXISTS sold_product (
-        #         sale_id PRIMARY KEY,
-        #         product_id INTEGER NOT NULL,
-        #         quantity INTEGER NOT NULL,
-        #         FOREIGN KEY(sale_id) REFERENCES sale(id) ON DELETE CASCADE,
-        #         FOREIGN KEY(product_id) REFERENCES product(id)
-        #     )"""
-        # )
-        # self.commit()
+        self.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sold_product (
+                sale_id PRIMARY KEY,
+                id INTEGER NOT NULL,
+                quantity INTEGER NOT NULL,
+                FOREIGN KEY(sale_id) REFERENCES sale(id) ON DELETE CASCADE,
+                FOREIGN KEY(id) REFERENCES product(id)
+            )"""
+        )
+        self.commit()
 
         self.close()
 
@@ -224,10 +218,10 @@ class Database(object):
 
         self.execute(
             """
-            CREATE TABLE IF NOT EXISTS payment_method (
+            CREATE TABLE IF NOT EXISTS payment_method(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-            """
+                name TEXT NOT NULL
+            )"""
         )
         self.commit()
 
@@ -237,7 +231,7 @@ class Database(object):
                 id INTEGER PRIMARY KEY,
                 flag TEXT NOT NULL,
                 number TEXT NOT NULL CHECK(LENGTH(number) = 16),
-                FOREIGN KEY(payment_method_id) REFERENCES payment_method(id),
+                FOREIGN KEY(id) REFERENCES payment_method(id)
             )
             """
         )
@@ -247,8 +241,8 @@ class Database(object):
             """
             CREATE TABLE IF NOT EXISTS cash (
                 id INTEGER PRIMARY KEY,
-                FOREIGN KEY(payment_method_id) REFERENCES payment_method(id)
-            """
+                FOREIGN KEY(id) REFERENCES payment_method(id)
+            )"""
         )
         self.commit()
 
@@ -257,7 +251,7 @@ class Database(object):
             CREATE TABLE IF NOT EXISTS pix (
                 id INTEGER PRIMARY KEY,
                 code TEXT NOT NULL,
-                FOREIGN KEY(payment_method_id) REFERENCES payment_method(id)
+                FOREIGN KEY(id) REFERENCES payment_method(id)
             )
             """
         )
@@ -266,7 +260,7 @@ class Database(object):
         self.close()
 
     # SELECT DATA
-    def _select_product_data_by_id(self, id: int):
+    def _select_data_by_id(self, id: int):
         self.connect()
         self.execute("SELECT * FROM product WHERE id = ?", (id,))
         product = self.fetch_one()
@@ -310,7 +304,7 @@ class Database(object):
         return payment_method
 
     # SINGLE RESULT
-    def select_product_by_id(self, id: int) -> p.Product:
+    def select_by_id(self, id: int) -> p.Product:
         self.connect()
         self.execute("SELECT id, type FROM product WHERE id = ?", (id,))
         product = self.fetch_one()
@@ -332,7 +326,7 @@ class Database(object):
         self.connect()
         self.execute("SELECT * FROM food WHERE id = ?", (id,))
         food = self.fetch_one()
-        product = self._select_product_data_by_id(food["product_id"])
+        product = self._select_data_by_id(food["id"])
         self.close()
         if food is None:
             return None
@@ -351,7 +345,7 @@ class Database(object):
         self.connect()
         self.execute("SELECT * FROM electronic WHERE id = ?", (id,))
         electronic = self.fetch_one()
-        product = self._select_product_data_by_id(electronic["product_id"])
+        product = self._select_data_by_id(electronic["id"])
         self.close()
 
         if electronic is None:
@@ -371,7 +365,7 @@ class Database(object):
         self.connect()
         self.execute("SELECT * FROM home_appliance WHERE id = ?", (id,))
         home_appliance = self.fetch_one()
-        product = self._select_product_data_by_id(home_appliance["product_id"])
+        product = self._select_data_by_id(home_appliance["id"])
         self.close()
 
         if home_appliance is None:
@@ -391,7 +385,7 @@ class Database(object):
         self.connect()
         self.execute("SELECT * FROM clothing WHERE id = ?", (id,))
         cloth = self.fetch_one()
-        product = self._select_product_data_by_id(cloth["product_id"])
+        product = self._select_data_by_id(cloth["id"])
         self.close()
 
         if cloth is None:
@@ -475,7 +469,7 @@ class Database(object):
         if sale_item is None:
             return None
         return s.SaleItem(
-            self.select_product_by_id(sale_item["product_id"]),
+            self.select_by_id(sale_item["id"]),
             sale_item["quantity"],
             sale_item["id"],
         )
@@ -511,7 +505,7 @@ class Database(object):
         self.execute("SELECT id FROM product")
         products = self.fetch_all()
         self.close()
-        return self._iterator_append(products, self._select_product_by_id)
+        return self._iterator_append(products, self._select_by_id)
 
     def select_all_foods(self) -> list[p.Food]:
         self.connect()
@@ -678,7 +672,7 @@ class Database(object):
         ids = ",".join(cash_ids)[1:-1]
 
         print(ids)  # TODO remove it
-        self.execute(f"SELECT id FROM sale WHERE payment_method_id IN ({ids})")
+        self.execute(f"SELECT id FROM sale WHERE 0id IN ({ids})")
         sales = self.fetch_all()["id"]
         self.close()
         return self._iterator_append(sales, self.select_sale_by_id)
@@ -696,11 +690,11 @@ class Database(object):
     def select_most_sold_products(self, n: int = 10) -> list[p.Product]:
         self.connect()
         self.execute(
-            f"SELECT product_id, COUNT(*) AS total FROM sale GROUP BY product_id ORDER BY total DESC LIMIT {n}"
+            f"SELECT id, COUNT(*) AS total FROM sale GROUP BY id ORDER BY total DESC LIMIT {n}"
         )
         products = self.fetch_all()
         self.close()
-        return self._iterator_append(products, self.select_product_by_id)
+        return self._iterator_append(products, self.select_by_id)
 
     def insert_product(self, product: p.Product):
         type: str = product.__class__.__name__.lower()
@@ -780,10 +774,10 @@ class Database(object):
     def insert_sale_item(self, sale_item: s.SaleItem) -> int:
         self.connect()
         self.execute(
-            "INSERT INTO sale_item (sale_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
+            "INSERT INTO sale_item (sale_id, id, quantity, price) VALUES (?, ?, ?, ?)",
             (
                 sale_item.get_sale_id(),
-                sale_item.get_product_id().get_id(),
+                sale_item.get_id().get_id(),
                 sale_item.get_quantity(),
                 sale_item.get_price(),
             ),
@@ -794,7 +788,7 @@ class Database(object):
     def insert_sale(self, sale: s.Sale) -> int:
         self.connect()
         self.execute(
-            "INSERT INTO sale (customer_id, seller_id, payment_method_id, date) VALUES (?, ?, ?, ?)",
+            "INSERT INTO sale (customer_id, seller_id, 0id, date) VALUES (?, ?, ?, ?)",
             (
                 sale.get_customer().get_id(),
                 sale.get_seller().get_id(),
@@ -824,3 +818,35 @@ class Database(object):
         self.commit()
         self.close()
         # TODO INSERT cash, pix and card
+
+    def populate_database(self, n: int = 10):
+        import extra.random as rand
+
+        r = rand.RandomObject()
+
+        i = 0
+        while i < n:  # Insert random users (customers, sellers)
+            c = r.Customer()
+            s = r.Seller()
+            self.insert_user(c)
+            self.insert_user(s)
+            i += 1
+
+        i = 0
+        while i < n:  # Insert providers
+            p = r.Provider()
+            self.insert_provider(p)
+            i += 1
+
+        i = 0
+        while i < n:  # Insert random products (food, electronics, clothes, etc)
+            p = r.Product()
+            self.insert_product(p)
+            i += 1
+
+        i = 0
+        # while i < n:  # Insert random sales
+        #     pass
+        # si = r.Sale_item()
+
+        # Insert random sales (by consequence, payments)
