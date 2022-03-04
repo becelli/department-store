@@ -1,13 +1,10 @@
 import sqlite3 as sql
-from datetime import datetime, timedelta
-from model.classes import (
-    user as u,
-    product as p,
-    sale as s,
-    payment as pm,
-    provider as pr,
-)
 import random as random
+from model.classes.payment import Payment
+from model.classes.product import Clothing, Electronic, Food, Home_Appliance, Product
+from model.classes.provider import Provider
+from model.classes.sale import Sale, SaleItem
+from model.classes.user import Customer, Seller, User
 
 
 class Database(object):
@@ -45,7 +42,7 @@ class Database(object):
         else:
             self.cursor.execute(query)
 
-    def fetch(self):
+    def fetch_all(self):
         """
         Fetch the results of a query.
         """
@@ -63,6 +60,16 @@ class Database(object):
         """
         self.connection.commit()
 
+    def lastrowid(self):
+        try:
+            return self.cursor.lastrowid
+        except:
+            self.connect()
+            self.execute("SELECT last_insert_rowid()")
+            id = self.fetch_one()[0]
+            self.close()
+            return id
+
     # CREATE TABLES
     def create_product_tables(self):
         self.connect()
@@ -70,7 +77,7 @@ class Database(object):
             """
             CREATE TABLE IF NOT EXISTS product (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                type TEXT NOT NULL CHECK(type = 'food' OR type = 'electronic' OR type = 'clothing' OR type = 'homeappliance'),
+                type TEXT NOT NULL CHECK(type = 'food' OR type = 'electronic' OR type = 'clothing' OR type = 'home_appliance'),
                 name TEXT NOT NULL,
                 description TEXT NOT NULL,
                 fabrication_date TEXT NOT NULL,
@@ -86,7 +93,7 @@ class Database(object):
         # Fashion
         self.execute(
             """
-            CREATE TABLE IF NOT EXISTS fashion (
+            CREATE TABLE IF NOT EXISTS clothing (
                 id INTEGER PRIMARY KEY,
                 FOREIGN KEY(id) REFERENCES product(id)
             )"""
@@ -124,14 +131,15 @@ class Database(object):
 
     def create_user_tables(self):
         self.connect()
+        # type TEXT NOT NULL CHECK(type = 'customer' OR type = 'provider'),
         self.execute(
-            """CREATE TABLE IF NOT EXISTS user (
+            """CREATE TABLE IF NOT EXISTS user(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                type TEXT NOT NULL CHECK(type = 'customer' OR type = 'provider'),
+                type TEXT NOT NULL,
                 name TEXT NOT NULL,
                 cpf TEXT NOT NULL,
                 rg TEXT NOT NULL,
-                birth_date DATE NOT NULL,
+                birthdate DATE NOT NULL,
                 address TEXT NOT NULL,
                 zipcode TEXT NOT NULL,
                 email TEXT NOT NULL
@@ -157,7 +165,7 @@ class Database(object):
             """
             CREATE TABLE IF NOT EXISTS customer (
                 id INTEGER PRIMARY KEY,
-                is_golden_customer INTEGER NOT NULL,
+                is_golden BOOLEAN NOT NULL,
                 FOREIGN KEY(id) REFERENCES user(id)
             )
             """
@@ -260,40 +268,75 @@ class Database(object):
         self.close()
 
     # SELECT DATA
-    def _select_data_by_id(self, id: int):
+    def _select_product_data_by_id(self, id: int):
         self.connect()
         self.execute("SELECT * FROM product WHERE id = ?", (id,))
         product = self.fetch_one()
         self.close()
-        return product
+        # create a dict with the product data
+        return {
+            "id": product[0],
+            "type": product[1],
+            "name": product[2],
+            "description": product[3],
+            "fabrication_date": product[4],
+            "price": product[5],
+            "provider_id": product[6],
+            "is_available": product[7],
+        }
 
     def _select_user_data_by_id(self, id: int):
         self.connect()
         self.execute("SELECT * FROM user WHERE id = ?", (id,))
         user = self.fetch_one()
         self.close()
-        return user
+        return {
+            "id": user[0],
+            "type": user[1],
+            "name": user[2],
+            "cpf": user[3],
+            "rg": user[4],
+            "birthdate": user[5],
+            "address": user[6],
+            "zipcode": user[7],
+            "email": user[8],
+        }
 
     def _select_provider_data_by_id(self, id: int):
         self.connect()
         self.execute("SELECT * FROM provider WHERE id = ?", (id,))
         provider = self.fetch_one()
         self.close()
-        return provider
+        return {
+            "id": provider[0],
+            "cnpj": provider[1],
+            "name": provider[2],
+            "description": provider[3],
+            "email": provider[4],
+            "phone": provider[5],
+            "address": provider[6],
+        }
 
     def _select_seller_data_by_id(self, id: int):
         self.connect()
         self.execute("SELECT * FROM seller WHERE id = ?", (id,))
         seller = self.fetch_one()
         self.close()
-        return seller
+        return {
+            "id": seller[0],
+            "salary": seller[1],
+            "pis": seller[2],
+        }
 
     def _select_customer_data_by_id(self, id: int):
         self.connect()
         self.execute("SELECT * FROM customer WHERE id = ?", (id,))
         customer = self.fetch_one()
         self.close()
-        return customer
+        return {
+            "id": customer[0],
+            "is_golden": customer[1],
+        }
 
     # TODO IT RIGHT?
     def _select_payment_method_data_by_id(self, id: int):
@@ -301,10 +344,13 @@ class Database(object):
         self.execute("SELECT * FROM payment_method WHERE id = ?", (id,))
         payment_method = self.fetch_one()
         self.close()
-        return payment_method
+        return {
+            "id": payment_method[0],
+            "name": payment_method[1],
+        }
 
     # SINGLE RESULT
-    def select_by_id(self, id: int) -> p.Product:
+    def select_product_by_id(self, id: int) -> Product:
         self.connect()
         self.execute("SELECT id, type FROM product WHERE id = ?", (id,))
         product = self.fetch_one()
@@ -312,169 +358,169 @@ class Database(object):
 
         if product is None:
             return None
-        if product["type"] == "food":
-            return self.select_food_by_id(product["id"])
-        elif product["type"] == "electronic":
-            return self.select_electronic_by_id(product["id"])
-        elif product["type"] == "home_appliance":
-            return self.select_home_appliance_by_id(product["id"])
-        elif product["type"] == "clothing":
-            return self.select_clothing_by_id(product["id"])
+        if product[1] == "food":
+            return self.select_food_by_id(product[0])
+        elif product[1] == "electronic":
+            return self.select_electronic_by_id(product[0])
+        elif product[1] == "home_appliance":
+            return self.select_home_appliance_by_id(product[0])
+        elif product[1] == "clothing":
+            return self.select_clothing_by_id(product[0])
         return None
 
-    def select_food_by_id(self, id: int) -> p.Food:
+    def select_food_by_id(self, id: int) -> Food:
         self.connect()
         self.execute("SELECT * FROM food WHERE id = ?", (id,))
-        food = self.fetch_one()
-        product = self._select_data_by_id(food["id"])
-        self.close()
-        if food is None:
+        p = self.fetch_one()
+        if p is None:
             return None
 
-        provider = self._select_provider_data_by_id(food["provider_id"])
-        return p.Food(
+        product = self._select_product_data_by_id(id)
+        provider = self.select_provider_by_id(product["provider_id"])
+        print(provider)
+        return Food(
             name=product["name"],
             description=product["description"],
+            fabrication_date=product["fabrication_date"],
             price=product["price"],
             provider=provider,
-            is_available=food["is_available"],
-            id=food["id"],
+            is_available=product["is_available"],
+            id=product["id"],
         )
 
-    def select_electronic_by_id(self, id: int) -> p.Electronic:
+    def select_electronic_by_id(self, id: int) -> Electronic:
         self.connect()
         self.execute("SELECT * FROM electronic WHERE id = ?", (id,))
-        electronic = self.fetch_one()
-        product = self._select_data_by_id(electronic["id"])
-        self.close()
-
-        if electronic is None:
+        p = self.fetch_one()
+        if p is None:
             return None
 
+        product = self._select_product_data_by_id(id)
         provider = self._select_provider_data_by_id(product["provider_id"])
-        return p.Electronic(
+        return Electronic(
             name=product["name"],
             description=product["description"],
+            fabrication_date=product["fabrication_date"],
             price=product["price"],
             provider=provider,
-            is_available=electronic["is_available"],
-            id=electronic["id"],
+            is_available=product["is_available"],
+            id=product["id"],
         )
 
-    def select_home_appliance_by_id(self, id: int) -> p.HomeAppliance:
+    def select_home_appliance_by_id(self, id: int) -> Home_Appliance:
         self.connect()
         self.execute("SELECT * FROM home_appliance WHERE id = ?", (id,))
-        home_appliance = self.fetch_one()
-        product = self._select_data_by_id(home_appliance["id"])
-        self.close()
-
-        if home_appliance is None:
+        p = self.fetch_one()
+        if p is None:
             return None
 
+        product = self._select_product_data_by_id(id)
         provider = self._select_provider_data_by_id(product["provider_id"])
-        return p.HomeAppliance(
+        return Home_Appliance(
             name=product["name"],
             description=product["description"],
+            fabrication_date=product["fabrication_date"],
             price=product["price"],
             provider=provider,
-            is_available=home_appliance["is_available"],
-            id=home_appliance["id"],
+            is_available=product["is_available"],
+            id=product["id"],
         )
 
-    def select_clothing_by_id(self, id: int) -> p.Clothing:
+    def select_clothing_by_id(self, id: int) -> Clothing:
         self.connect()
         self.execute("SELECT * FROM clothing WHERE id = ?", (id,))
-        cloth = self.fetch_one()
-        product = self._select_data_by_id(cloth["id"])
-        self.close()
-
-        if cloth is None:
+        p = self.fetch_one()
+        if p is None:
             return None
 
+        product = self._select_product_data_by_id(id)
         provider = self._select_provider_data_by_id(product["provider_id"])
-        return p.Clothing(
+        return Clothing(
             name=product["name"],
             description=product["description"],
-            fabrication=product["fabrication"],
+            fabrication_date=product["fabrication_date"],
             price=product["price"],
             provider=provider,
-            is_available=cloth["is_available"],
-            id=cloth["id"],
+            is_available=product["is_available"],
+            id=product["id"],
         )
 
-    def select_customer_by_id(self, id: int) -> u.Customer:
+    def select_customer_by_id(self, id: int) -> Customer:
         self.connect()
         self.execute("SELECT * FROM customer WHERE id = ?", (id,))
-        customer = self.fetch_one()
+        query = self.fetch_one()
         self.close()
-        if customer is None:
+        if query is None:
             return None
-        user = self._select_user_data_by_id(customer["user_id"])
-        return u.Customer(
+        [id, is_golden] = query
+        user = self._select_user_data_by_id(id)
+        return Customer(
             id=user["id"],
             name=user["name"],
             cpf=user["cpf"],
             rg=user["rg"],
-            birth_date=user["birth_date"],
+            birthdate=user["birthdate"],
             address=user["address"],
             zipcode=user["zipcode"],
             email=user["email"],
-            is_golden_customer=customer["is_golden_customer"],
+            is_golden=is_golden,
         )
 
-    def select_seller_by_id(self, id: int) -> u.Seller:
+    def select_seller_by_id(self, id: int) -> Seller:
         self.connect()
         self.execute("SELECT * FROM seller WHERE id = ?", (id,))
-        seller = self.fetch_one()
+        query = self.fetch_one()
         self.close()
-        if seller is None:
+        if query is None:
             return None
-        user = self._select_user_data_by_id(seller["user_id"])
-        return u.Seller(
+        [id, salary, pis, admission_date] = query
+        user = self._select_user_data_by_id(id)
+        return Seller(
             name=user["name"],
             cpf=user["cpf"],
             rg=user["rg"],
-            birth_date=user["birth_date"],
+            birthdate=user["birthdate"],
             address=user["address"],
             zipcode=user["zipcode"],
             email=user["email"],
-            salary=seller["salary"],
-            pis=seller["pis"],
-            admission_date=seller["admission_date"],
+            salary=salary,
+            pis=pis,
+            admission_date=admission_date,
             id=user["id"],
         )
 
-    def select_provider_by_id(self, id: int) -> p.Provider:
+    def select_provider_by_id(self, id: int) -> Provider:
         self.connect()
         self.execute("SELECT * FROM provider WHERE id = ?", (id,))
-        provider = self.fetch_one()
+        query = self.fetch_one()
         self.close()
-        if provider is None:
+        if query is None:
             return None
-        return p.Provider(
-            cnpj=provider["cnpj"],
-            name=provider["name"],
-            description=provider["description"],
-            address=provider["address"],
-            zipcode=provider["zipcode"],
-            email=provider["email"],
-            id=provider["id"],
+        [id, cnpj, name, description, email, phone, address] = query
+        return Provider(
+            cnpj=cnpj,
+            name=name,
+            description=description,
+            email=email,
+            phone=phone,
+            address=address,
+            id=id,
         )
 
-    def select_sale_item_by_id(self, id: int) -> s.SaleItem:
+    def select_sale_item_by_id(self, id: int) -> SaleItem:
         self.connect()
         self.execute("SELECT * FROM sale_item WHERE id = ?", (id,))
         sale_item = self.fetch_one()
         self.close()
         if sale_item is None:
             return None
-        return s.SaleItem(
+        return SaleItem(
             self.select_by_id(sale_item["id"]),
             sale_item["quantity"],
             sale_item["id"],
         )
 
-    def select_sale_by_id(self, id: int) -> s.Sale:
+    def select_sale_by_id(self, id: int) -> Sale:
         self.connect()
         self.execute("SELECT * FROM sale WHERE id = ?", (id,))
         sale = self.fetch_one()
@@ -482,7 +528,7 @@ class Database(object):
         if sale is None:
             return None
 
-        return s.Sale(
+        return Sale(
             customer=self.select_customer_by_id(sale["customer_id"]),
             seller=self.select_seller_by_id(sale["seller_id"]),
             sell_date=sale["date"],
@@ -491,7 +537,7 @@ class Database(object):
             id=sale["id"],
         )
 
-    def select_payment_method_by_id(self, id: int) -> pm.Payment:
+    def select_payment_method_by_id(self, id: int) -> Payment:
         self.connect()
         self.execute("SELECT * FROM payment_method WHERE id = ?", (id,))
         payment_method = self.fetch_one()
@@ -500,73 +546,69 @@ class Database(object):
             return None
 
     # MULTIPLE
-    def select_all_products(self) -> list[p.Product]:
+    def select_all_products(self) -> list[Product]:
         self.connect()
         self.execute("SELECT id FROM product")
-        products = self.fetch_all()
+        products = [x[0] for x in self.fetch_all()]
         self.close()
-        return self._iterator_append(products, self._select_by_id)
 
-    def select_all_foods(self) -> list[p.Food]:
+        return self._iterator_append(products, self.select_product_by_id)
+
+    def select_all_foods(self) -> list[Food]:
         self.connect()
         self.execute("SELECT id FROM food")
-        foods = self.fetch_all()
+        foods = [x[0] for x in self.fetch_all()]
         self.close()
-        return self._iterator_append(foods, self._select_food_by_id)
+        return self._iterator_append(foods, self.select_food_by_id)
 
-    def select_all_electronics(self) -> list[p.Electronic]:
+    def select_all_electronics(self) -> list[Electronic]:
         self.connect()
         self.execute("SELECT id FROM electronic")
-        electronics = self.fetch_all()
+        electronics = [x[0] for x in self.fetch_all()]
         self.close()
-        return [
-            self._select_electronic_by_id(electronic["id"])
-            for electronic in electronics
-        ]
+        return self._iterator_append(electronics, self.select_electronic_by_id)
 
-    def select_all_home_appliances(self) -> list[p.HomeAppliance]:
+    def select_all_home_appliances(self) -> list[Home_Appliance]:
         self.connect()
         self.execute("SELECT id FROM home_appliance")
-        home_appliances = self.fetch_all()
+        home_appliances = [x[0] for x in self.fetch_all()]
         self.close()
-        return [
-            self._select_home_appliance_by_id(home_appliance["id"])
-            for home_appliance in home_appliances
-        ]
+        return self._iterator_append(home_appliances, self.select_home_appliance_by_id)
 
-    def select_all_clothes(self) -> list[p.Clothing]:
+    def select_all_clothes(self) -> list[Clothing]:
         self.connect()
         self.execute("SELECT id FROM clothing")
-        clothes = self.fetch_all()
+        clothes = [x[0] for x in self.fetch_all()]
         self.close()
         return self._iterator_append(clothes, self.select_clothing_by_id)
 
-    def select_all_customers(self) -> list[u.Customer]:
+    def select_all_customers(self) -> list[Customer]:
         self.connect()
         self.execute("SELECT id FROM customer")
-        customers = self.fetch_all()
+        customers = [x[0] for x in self.fetch_all()]
         self.close()
+        print(customers)
         return self._iterator_append(customers, self.select_customer_by_id)
 
-    def select_all_sellers(self) -> list[u.Seller]:
+    def select_all_sellers(self) -> list[Seller]:
         self.connect()
         self.execute("SELECT id FROM seller")
-        sellers = self.fetch_all()
+        sellers = [x[0] for x in self.fetch_all()]
         self.close()
-        sellers = []
+
         return self._iterator_append(sellers, self.select_seller_by_id)
 
-    def select_all_providers(self) -> list[p.Provider]:
+    def select_all_providers(self) -> list[Provider]:
         self.connect()
         self.execute("SELECT id FROM provider")
-        providers = self.fetch_all()
+        providers = [x[0] for x in self.fetch_all()]  # iterator
         self.close()
         return self._iterator_append(providers, self.select_provider_by_id)
 
-    def select_all_golden_customers(self) -> list[u.Customer]:
+    def select_all_golden_customers(self) -> list[Customer]:
         self.connect()
         self.execute("SELECT id FROM customers WHERE is_golden_customer = 1")
-        customers = self.fetch_all()
+        customers = [x[0] for x in self.fetch_all()]
         self.close()
         return self._iterator_append(customers, self.select_customer_by_id)
 
@@ -582,17 +624,17 @@ class Database(object):
         return data_list
 
     # RANDOM
-    def select_random_customer(self) -> u.Customer:
+    def select_random_customer(self) -> Customer:
         self.connect()
         self.execute("SELECT id FROM customer")
-        customers = self.fetch_all()
+        customers = [x[0] for x in self.fetch_all()]
         self.close()
         c = self._select_customer_data_by_id(random.choice(customers))
-        return u.Customer(
+        return Customer(
             name=c["name"],
             cpf=c["cpf"],
             rg=c["rg"],
-            birthdate=c["birth_date"],
+            birthdate=c["birthdate"],
             address=c["address"],
             zipcode=c["zipcode"],
             email=c["email"],
@@ -600,17 +642,17 @@ class Database(object):
             id=c["id"],
         )
 
-    def select_random_seller(self) -> u.Seller:
+    def select_random_seller(self) -> Seller:
         self.connect()
         self.execute("SELECT id FROM seller")
-        seller = self.fetch_all()
+        seller = [x[0] for x in self.fetch_all()]
         self.close()
         s = self._select_customer_data_by_id(random.choice(seller))
-        return u.Seller(
+        return Seller(
             name=s["name"],
             cpf=s["cpf"],
             rg=s["rg"],
-            birthdate=s["birth_date"],
+            birthdate=s["birthdate"],
             address=s["address"],
             zipcode=s["zipcode"],
             email=s["email"],
@@ -623,35 +665,55 @@ class Database(object):
         quantity = random.randint(1, len(products))
         return shuffled[:quantity]
 
+    def select_random_provider(self):
+        self.connect()
+        self.execute("SELECT id FROM provider")
+        provider = [x[0] for x in self.fetch_all()]
+        self.close()
+        s = self._select_provider_data_by_id(random.choice(provider))
+
+        return Provider(
+            cnpj=s["cnpj"],
+            name=s["name"],
+            description=s["description"],
+            email=s["email"],
+            phone=s["phone"],
+            address=s["address"],
+            id=s["id"],
+        )
+
     # SPECIAL LISTS
     def select_customer_history_by_id(self, id: int):
         self.connect()
         self.execute("SELECT * FROM sale WHERE customer_id = ?", (id,))
-        sales = self.fetch_all()
+        sales = [x[0] for x in self.fetch_all()]
         self.close()
         return self._iterator_append(sales, self._select_sale_by_id)
 
-    def select_best_seller_of_the_month(self, month: int, year: int):
+    def select_best_seller_of_the_month(self, month: int, year: int) -> Seller:
         # Select the seller with the most sales
         self.connect()
         self.execute(
-            f"SELECT seller_id FROM sale WHERE date LIKE '{year}-{month}%' GROUP BY seller_id ORDER BY COUNT(*) DESC LIMIT 1"
+            f"SELECT seller_id FROM sale WHERE sell_date LIKE '{year}-{month}%' GROUP BY seller_id ORDER BY COUNT(*) DESC LIMIT 1"
         )
-        seller_id = self.fetch_one()["seller_id"]
+        query = self.fetch_one()
         self.close()
+        if query is None:
+            return None
+        [seller_id] = query
         return self.select_seller_by_id(seller_id)
 
     def select_all_sales(self):
         self.connect()
         self.execute("SELECT id FROM sale")
-        sales = self.fetch_all()
+        sales = [x[0] for x in self.fetch_all()]
         self.close()
         return self._iterator_append(sales, self.select_sale_by_id)
 
     def select_all_sales_in_month(self, month: int, year: int):
         self.connect()
         self.execute(f"SELECT id FROM sale WHERE date LIKE '{year}-{month}%'")
-        sales_ids = self.fetch_all()
+        sales_ids = [x[0] for x in self.fetch_all()]
         self.close()
         sales = self._iterator_append(sales_ids, self.select_sale_by_id)
 
@@ -659,44 +721,44 @@ class Database(object):
         sum = 0
         while True:
             try:
-                obj: s.Sale = next(iterator)
+                obj: Sale = next(iterator)
                 sum += obj.calculate_total_value()
             except StopIteration:
                 break
         return sum
 
-    def _select_all_sales_paid_with(self, table: str) -> list[s.Sale]:
+    def _select_all_sales_paid_with(self, table: str) -> list[Sale]:
         self.connect()
         self.execute(f"SELECT id FROM {table}")
-        cash_ids = self.fetch_all()["id"]
+        cash_ids = [x[0] for x in self.fetch_all()]
         ids = ",".join(cash_ids)[1:-1]
 
         print(ids)  # TODO remove it
         self.execute(f"SELECT id FROM sale WHERE 0id IN ({ids})")
-        sales = self.fetch_all()["id"]
+        sales = [x[0] for x in self.fetch_all()]
         self.close()
         return self._iterator_append(sales, self.select_sale_by_id)
 
-    def select_all_sales_paid_via_cash(self) -> list[s.Sale]:
+    def select_all_sales_paid_via_cash(self) -> list[Sale]:
         return self._select_all_sales_paid_with("cash")
 
-    def select_all_sales_paid_via_card(self) -> list[s.Sale]:
+    def select_all_sales_paid_via_card(self) -> list[Sale]:
         return self._select_all_sales_paid_with("credit_card")
 
-    def select_all_sales_paid_via_pix(self) -> list[s.Sale]:
+    def select_all_sales_paid_via_pix(self) -> list[Sale]:
         return self._select_all_sales_paid_with("pix")
 
     # select most sold products
-    def select_most_sold_products(self, n: int = 10) -> list[p.Product]:
+    def select_most_sold_products(self, n: int = 10) -> list[Product]:
         self.connect()
         self.execute(
             f"SELECT id, COUNT(*) AS total FROM sale GROUP BY id ORDER BY total DESC LIMIT {n}"
         )
-        products = self.fetch_all()
+        products = [x[0] for x in self.fetch_all()]
         self.close()
-        return self._iterator_append(products, self.select_by_id)
+        return self._iterator_append(products, self.select_product_by_id)
 
-    def insert_product(self, product: p.Product):
+    def insert_product(self, product: Product):
         type: str = product.__class__.__name__.lower()
 
         self.connect()
@@ -708,13 +770,13 @@ class Database(object):
                 product.get_description(),
                 product.get_fabrication_date(),
                 product.get_price(),
-                product.get_provider_id(),
+                product.get_provider().get_id(),
                 product.get_is_available(),
             ),
         )
         self.commit()
 
-        row = self.lastrowid
+        row = self.lastrowid()
         self.execute(
             f"INSERT INTO {type} (id) VALUES (?)",
             (row,),
@@ -722,7 +784,7 @@ class Database(object):
         self.commit()
         self.close()
 
-    def insert_provider(self, provider: p.Provider):
+    def insert_provider(self, provider: Provider):
         self.connect()
         self.execute(
             "INSERT INTO provider (cnpj, name, description, email, phone, address) VALUES (?, ?, ?, ?, ?, ?)",
@@ -738,29 +800,29 @@ class Database(object):
         self.commit()
         self.close()
 
-    def insert_user(self, user: u.User) -> int:
+    def insert_user(self, user: User) -> int:
         type = user.__class__.__name__.lower()
+
         self.connect()
         self.execute(
-            "INSERT INTO user (type, name, cpf, rg, birth_date, address, zipcode, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO user (type, name, cpf, rg, birthdate, address, zipcode, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 type,
                 user.get_name(),
                 user.get_cpf(),
                 user.get_rg(),
-                user.get_birthdate(),
+                str(user.get_birthdate())[:10],
                 user.get_address(),
                 user.get_zipcode(),
                 user.get_email(),
             ),
         )
-        self.commit()
 
-        row = self.lastrowid
+        row = self.lastrowid()
         if type == "customer":
             self.execute(
-                f"INSERT INTO customer (id, is_golden_customer) VALUES (?)",
-                (row, user.is_golden_customer()),
+                f"INSERT INTO customer (id, is_golden) VALUES (?, ?)",
+                (row, user.get_is_golden()),
             )
         elif type == "seller":
             self.execute(
@@ -771,7 +833,7 @@ class Database(object):
         self.commit()
         self.close()
 
-    def insert_sale_item(self, sale_item: s.SaleItem) -> int:
+    def insert_sale_item(self, sale_item: SaleItem) -> int:
         self.connect()
         self.execute(
             "INSERT INTO sale_item (sale_id, id, quantity, price) VALUES (?, ?, ?, ?)",
@@ -785,7 +847,7 @@ class Database(object):
         self.commit()
         self.close()
 
-    def insert_sale(self, sale: s.Sale) -> int:
+    def insert_sale(self, sale: Sale) -> int:
         self.connect()
         self.execute(
             "INSERT INTO sale (customer_id, seller_id, 0id, date) VALUES (?, ?, ?, ?)",
@@ -796,19 +858,19 @@ class Database(object):
                 sale.get_date(),
             ),
         )
-        row = self.lastrowid
+        row = self.lastrowid()
         self.commit()
         self.close()
         return row
 
-    def select_all_payment_methods(self) -> list[pm.Payment]:
+    def select_all_payment_methods(self) -> list[Payment]:
         self.connect()
         self.execute("SELECT id FROM payment_method")
-        payment_methods = self.fetch_all()["id"]
+        payment_methods = [x[0] for x in self.fetch_all()]
         self.close()
         return self._iterator_append(payment_methods, self.select_payment_method_by_id)
 
-    def insert_payment_method(self, payment_method: pm.Payment):
+    def insert_payment_method(self, payment_method: Payment):
         type = payment_method.__class__.__name__.lower()
         self.connect()
         self.execute(
@@ -822,7 +884,9 @@ class Database(object):
     def populate_database(self, n: int = 10):
         import extra.random as rand
 
-        r = rand.RandomObject()
+        r = rand.RandomObject(
+            product_db=self.db_name, user_db=self.db_name, provider_db=self.db_name
+        )
 
         i = 0
         while i < n:  # Insert random users (customers, sellers)
@@ -841,6 +905,8 @@ class Database(object):
         i = 0
         while i < n:  # Insert random products (food, electronics, clothes, etc)
             p = r.Product()
+
+            a = 0
             self.insert_product(p)
             i += 1
 

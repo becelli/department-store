@@ -2,7 +2,7 @@ import model.classes.database as database
 import model.classes.sale as sale
 
 
-class Sale_controller:
+class SaleController:
     def __init__(self, db: str = "app.db"):
         self.db = database.Database(db)
 

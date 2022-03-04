@@ -12,7 +12,7 @@ class UserController:
     def _select_user_data_by_id(self):
         return self.db._select_user_data_by_id()
 
-    def select_all_customer(self):
+    def select_all_customers(self):
         return self.db.select_all_customers()
 
     def select_random_customer(self):

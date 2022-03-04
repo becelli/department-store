@@ -27,37 +27,37 @@ class User(ABC):
     @abstractmethod
     def __str__(self):
         return (
-            f"Usuario: {self._get_id()}: {self._get_name()}"
-            f"\n RG: {self._get_rg()}"
-            f"\n CPF: {self._get_cpf()}"
-            f"\n Email: {self._get_email()}"
-            f"\n CEP: {self._get_zipcode()}"
-            f"\n Endereço: {self._get_address()}"
-            f"\n Nascimento: {self._get_birthdate()}"
+            f"Usuário {self.get_id()}: {self.get_name()}"
+            f"\n RG: {self.get_rg()}"
+            f"\n CPF: {self.get_cpf()}"
+            f"\n Email: {self.get_email()}"
+            f"\n CEP: {self.get_zipcode()}"
+            f"\n Endereço: {self.get_address()}"
+            f"\n Nascimento: {self.get_birthdate()}"
         )
 
     def get_name(self):
         return self._name
 
-    def get_id(self):
+    def get_id(self) -> int:
         return self._id
 
-    def get_cpf(self):
+    def get_cpf(self) -> str:
         return self._cpf
 
-    def get_rg(self):
+    def get_rg(self) -> str:
         return self._rg
 
-    def get_birthdate(self):
+    def get_birthdate(self) -> date:
         return self._birthdate
 
-    def get_zipcode(self):
+    def get_zipcode(self) -> str:
         return self._zipcode
 
-    def get_email(self):
+    def get_email(self) -> str:
         return self._email
 
-    def get_address(self):
+    def get_address(self) -> str:
         return self._address
 
     def set_name(self, name: str):
@@ -108,9 +108,9 @@ class Seller(User):
     def __str__(self):
         return (
             super().__str__()
-            + f"\n Salário: {self._get_salary()}"
-            + f"\n PIS: {self._get_pis()}"
-            + f"\n Data de Admissão: {self._get_admission_date()}"
+            + f"\n Salário: {self.get_salary()}"
+            + f"\n PIS: {self.get_pis()}"
+            + f"\n Data de Admissão: {str(self.get_admission_date())[:10]}"
         )
 
     def get_salary(self):
@@ -151,7 +151,7 @@ class Customer(User):
     def __str__(self):
         return (
             super().__str__()
-            + f"\n Cliente Ouro: {'Sim' if self._get_is_golden() else 'Não'}"
+            + f"\n Cliente Ouro: {'Sim' if self.get_is_golden() else 'Não'}"
         )
 
     def get_is_golden(self):

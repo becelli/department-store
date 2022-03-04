@@ -25,4 +25,4 @@ class ProductController:
         return self.db.select_most_sold_products()
 
     def insert_product(self, product: p.Product):
-        return self.db.insert_product(p.Product)
+        return self.db.insert_product(product)
