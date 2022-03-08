@@ -28,12 +28,12 @@ class User(ABC):
     def __str__(self):
         return (
             f"Usuário {self.get_id()}: {self.get_name()}"
-            f"\n RG: {self.get_rg()}"
-            f"\n CPF: {self.get_cpf()}"
-            f"\n Email: {self.get_email()}"
-            f"\n CEP: {self.get_zipcode()}"
-            f"\n Endereço: {self.get_address()}"
-            f"\n Nascimento: {self.get_birthdate()}"
+            f"\nRG: {self.get_rg()}"
+            f"\nCPF: {self.get_cpf()}"
+            f"\nEmail: {self.get_email()}"
+            f"\nCEP: {self.get_zipcode()}"
+            f"\nEndereço: {self.get_address()}"
+            f"\nNascimento: {self.get_birthdate()}"
         )
 
     def get_name(self):
@@ -108,9 +108,9 @@ class Seller(User):
     def __str__(self):
         return (
             super().__str__()
-            + f"\n Salário: {self.get_salary()}"
-            + f"\n PIS: {self.get_pis()}"
-            + f"\n Data de Admissão: {str(self.get_admission_date())[:10]}"
+            + f"\nSalário: {self.get_salary()}"
+            + f"\nPIS: {self.get_pis()}"
+            + f"\nData de Admissão: {str(self.get_admission_date())[:10]}"
         )
 
     def get_salary(self):
@@ -151,7 +151,7 @@ class Customer(User):
     def __str__(self):
         return (
             super().__str__()
-            + f"\n Cliente Ouro: {'Sim' if self.get_is_golden() else 'Não'}"
+            + f"\nCliente Ouro: {'Sim' if self.get_is_golden() else 'Não'}"
         )
 
     def get_is_golden(self):

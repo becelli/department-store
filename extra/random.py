@@ -27,7 +27,7 @@ class RandomObjectInfo:
         description = f"{name} {self._random_electronics_description()}"
         fabrication = random.randint(current_year - 7, current_year)
         price = random.randint(100, 1000) + random.random()
-        provider = ProviderController(self._provider_db_name).select_random_provider()
+        provider = ProviderController(self._provider_db_name).get_random_provider()
         is_available = True
         return name, description, fabrication, price, provider, is_available
 
@@ -37,7 +37,7 @@ class RandomObjectInfo:
         description = f"{name} {self._random_homeappliance_description()}"
         fabrication = random.randint(current_year - 10, current_year)
         price = random.randint(1000, 10000)
-        provider = ProviderController(self._provider_db_name).select_random_provider()
+        provider = ProviderController(self._provider_db_name).get_random_provider()
         is_available = True
         return name, description, fabrication, price, provider, is_available
 
@@ -45,7 +45,7 @@ class RandomObjectInfo:
         current_year = date.now().year
         name = self._random_food_name()
         description = f"{name} {self._random_product_description()}"
-        provider = ProviderController(self._provider_db_name).select_random_provider()
+        provider = ProviderController(self._provider_db_name).get_random_provider()
         fabrication = random.randint(current_year - 1, current_year)
         price = random.randint(10, 200)
         is_available = True
@@ -57,7 +57,7 @@ class RandomObjectInfo:
         description = f"{name} {self._random_clothing_description()}"
         fabrication = random.randint(current_year - 8, current_year)
         price = random.randint(30, 500)
-        provider = ProviderController(self._provider_db_name).select_random_provider()
+        provider = ProviderController(self._provider_db_name).get_random_provider()
         is_available = True
         return name, description, fabrication, price, provider, is_available
 
@@ -76,27 +76,31 @@ class RandomObjectInfo:
 
     def Seller(self) -> list:
         name = self._names()
-        rg = self._nsize_num_as_str(11)  # cpfpc.select_random_provider()
+        rg = self._nsize_num_as_str(11)  # cpfpc.get_random_provider()
         cpf = self._nsize_num_as_str(9)  # rg
-        date = self._date()
+        bdate = self._date()
         address = self._random_street_name()
         zip_code = f"{self._nsize_num_as_str(5)}-{self._nsize_num_as_str(3)}"
         email = (
             name.split(" ")[0].lower() + (self._nsize_num_as_str(5)) + self._emails()
         )
-        salary = random.randint(1000, 4000)
-        pis = self._nsize_num_as_str(5)
-        admission = self._date()
-        return name, rg, cpf, date, address, zip_code, email, salary, pis, admission
+        salary = random.randint(1000, 5000)
+        pis = self._nsize_num_as_str(11)
+        admission = self._date(bdate.year + 16, date.now().year)
+        return name, rg, cpf, bdate, address, zip_code, email, salary, pis, admission
 
     def Provider(self) -> list:
-        cnpj = self._nsize_num_as_str(14)
+        cnpj = (
+            self._nsize_num_as_str(8)
+            + f"000{random.randint(1, 9)}"
+            + self._nsize_num_as_str(2)
+        )
         name = self._provider_name()
         description = self._provider_description()
-        email = name.lower() + self._nsize_num_as_str(2) + self._emails()
-        telefone = self._nsize_num_as_str(9)
+        email = name.split(" ")[0].lower() + self._nsize_num_as_str(3) + self._emails()
+        phone = self._nsize_num_as_str(11)
         address = self._random_street_name()
-        return cnpj, name, description, email, telefone, address
+        return cnpj, name, description, email, phone, address
 
     def Cash_payment(self) -> list[str]:
         return "Dinheiro"
@@ -165,7 +169,7 @@ class RandomObjectInfo:
             "Sapatenis",
             "Chuteira",
             "Crock",
-            "Sandalha",
+            "Sandália",
             "Meias",
             "Blusa Jeans",
             "Short",
@@ -228,7 +232,6 @@ class RandomObjectInfo:
     def _random_product_description(self):
         description_product = [
             "da casa",
-            "de golden",
             "gourmet",
             "de Minas",
             "nordestino",
@@ -247,10 +250,11 @@ class RandomObjectInfo:
             "Microondas",
             "Máquina de Lavar",
             "Ventilador",
-            "Televisão",
-            "Computador",
-            "Notebook",
             "Rádio",
+            "Secadora",
+            "Secador de Cabelo",
+            "Ar condicionado",
+            "Frigobar",
         ]
         return random.choice(home_devices)
 
@@ -351,6 +355,8 @@ class RandomObjectInfo:
             "@msn.com",
             "@baidu.com",
             "@live.com",
+            "@yahoo.com",
+            "@qq.com",
         ]
         return random.choice(emails)
 

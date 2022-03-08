@@ -6,23 +6,23 @@ class SaleController:
     def __init__(self, db: str = "app.db"):
         self.db = database.Database(db)
 
-    def select_sale_item_by_id(self):
+    def get_sale_item_by_id(self):
         return self.db.select_sale_item_by_id()
 
-    def select_sale_by_id(self):
+    def get_sale_by_id(self):
         return self.db.select_sale_by_id()
 
-    def select_all_sales(self):
+    def get_all_sales(self):
         return self.db.select_all_sales()
 
-    def select_all_sales_in_month(self, month: int, year: int):
+    def get_all_sales_in_month(self, month: int, year: int):
         return self.db.select_all_sales_in_month(month, year)
 
-    def select_all_sales_paid_via_cash(self):
+    def get_all_sales_paid_via_cash(self):
         return self.db.select_all_sales_paid_via_cash()
 
-    def select_all_sales_paid_via_card(self):
+    def get_all_sales_paid_via_card(self):
         return self.db.select_all_sales_paid_via_card()
 
-    def select_all_sales_paid_via_pix(self):
+    def get_all_sales_paid_via_pix(self):
         return self.db.select_all_sales_paid_via_pix()

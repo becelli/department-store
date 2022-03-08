@@ -131,9 +131,8 @@ class Database(object):
 
     def create_user_tables(self):
         self.connect()
-        # type TEXT NOT NULL CHECK(type = 'customer' OR type = 'provider'),
         self.execute(
-            """CREATE TABLE IF NOT EXISTS user(
+            """CREATE TABLE IF NOT EXISTS user (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 type TEXT NOT NULL,
                 name TEXT NOT NULL,
@@ -199,7 +198,7 @@ class Database(object):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 customer_id INTEGER NOT NULL,
                 seller_id INTEGER NOT NULL,
-                sell_date TEXT NOT NULL,
+                date TEXT NOT NULL,
                 payment_method_id INTEGER NOT NULL,
                 FOREIGN KEY(seller_id) REFERENCES seller(id)
                 FOREIGN KEY(payment_method_id) REFERENCES payment_method(id)
@@ -377,7 +376,7 @@ class Database(object):
 
         product = self._select_product_data_by_id(id)
         provider = self.select_provider_by_id(product["provider_id"])
-        print(provider)
+
         return Food(
             name=product["name"],
             description=product["description"],
@@ -587,7 +586,7 @@ class Database(object):
         self.execute("SELECT id FROM customer")
         customers = [x[0] for x in self.fetch_all()]
         self.close()
-        print(customers)
+
         return self._iterator_append(customers, self.select_customer_by_id)
 
     def select_all_sellers(self) -> list[Seller]:
@@ -606,8 +605,9 @@ class Database(object):
         return self._iterator_append(providers, self.select_provider_by_id)
 
     def select_all_golden_customers(self) -> list[Customer]:
+
         self.connect()
-        self.execute("SELECT id FROM customers WHERE is_golden_customer = 1")
+        self.execute("SELECT id FROM customer WHERE is_golden = 1")
         customers = [x[0] for x in self.fetch_all()]
         self.close()
         return self._iterator_append(customers, self.select_customer_by_id)
@@ -638,7 +638,7 @@ class Database(object):
             address=c["address"],
             zipcode=c["zipcode"],
             email=c["email"],
-            is_golden=c["is_golden_customer"],
+            is_golden=c["is_golden"],
             id=c["id"],
         )
 
@@ -694,14 +694,14 @@ class Database(object):
         # Select the seller with the most sales
         self.connect()
         self.execute(
-            f"SELECT seller_id FROM sale WHERE sell_date LIKE '{year}-{month}%' GROUP BY seller_id ORDER BY COUNT(*) DESC LIMIT 1"
+            f"SELECT seller_id, COUNT(*) as total FROM sale WHERE date LIKE '{year}-{month}%' GROUP BY seller_id ORDER BY total DESC LIMIT 1"
         )
         query = self.fetch_one()
         self.close()
         if query is None:
             return None
-        [seller_id] = query
-        return self.select_seller_by_id(seller_id)
+        [seller_id, quantity] = query
+        return [self.select_seller_by_id(seller_id), quantity]
 
     def select_all_sales(self):
         self.connect()
@@ -734,7 +734,7 @@ class Database(object):
         ids = ",".join(cash_ids)[1:-1]
 
         print(ids)  # TODO remove it
-        self.execute(f"SELECT id FROM sale WHERE 0id IN ({ids})")
+        self.execute(f"SELECT id FROM sale WHERE id IN ({ids})")
         sales = [x[0] for x in self.fetch_all()]
         self.close()
         return self._iterator_append(sales, self.select_sale_by_id)
@@ -850,7 +850,7 @@ class Database(object):
     def insert_sale(self, sale: Sale) -> int:
         self.connect()
         self.execute(
-            "INSERT INTO sale (customer_id, seller_id, 0id, date) VALUES (?, ?, ?, ?)",
+            "INSERT INTO sale (customer_id, seller_id, id, date) VALUES (?, ?, ?, ?)",
             (
                 sale.get_customer().get_id(),
                 sale.get_seller().get_id(),
