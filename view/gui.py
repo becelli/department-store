@@ -10,7 +10,15 @@ from controller.provider import ProviderController
 from controller.sale import SaleController
 from controller.user import UserController
 from extra.random import RandomObjectInfo
-from model.classes.product import Clothing, Electronic, Food, Home_Appliance, Product
+from model.classes.product import (
+    Clothing,
+    Electronic,
+    Food,
+    Home_Appliance,
+    Product,
+    StrategyProduct,
+)
+from model.classes.provider import Provider
 from model.classes.user import Customer, Seller
 from view.output import TextOutput
 from view.window import CenterWindow
@@ -44,8 +52,8 @@ class GUI:
         self.file_menu(menubar)
         self.user_menu(menubar)
         self.product_menu(menubar)
-        # self.provider_menu(menubar)
-        # self.sale_menu(menubar)
+        self.provider_menu(menubar)
+        self.sale_menu(menubar)
 
     def file_menu(self, menubar):
         self.filemenu = tk.Menu(menubar, tearoff=0)
@@ -100,6 +108,8 @@ class GUI:
         get_menu.add_command(label="Eletrônicos", command=electronics)
         home_appliances = pUI.get_all_home_appliances
         get_menu.add_command(label="Eletrodomésticos", command=home_appliances)
+        most_sold = pUI.get_most_sold_products
+        get_menu.add_command(label="Mais Vendidos", command=most_sold)
 
         ##### CASCADES ####
         product_menu.add_cascade(label="Consultar", menu=get_menu)
@@ -119,6 +129,8 @@ class GUI:
         get_menu = tk.Menu(menubar, tearoff=0)
         all_providers = providerui.get_all_providers
         get_menu.add_command(label="Todos os fornecedores", command=all_providers)
+        provider_info = providerui.get_provider_info
+        get_menu.add_command(label="Fornecedor", command=provider_info)
 
         ##### CASCADES ####
         self.providermenu.add_cascade(label="Consultar", menu=get_menu)
@@ -138,6 +150,18 @@ class GUI:
         get_menu = tk.Menu(menubar, tearoff=0)
         all_sales = saleui.get_all_sales
         get_menu.add_command(label="Todas as vendas", command=all_sales)
+        sale_info = saleui.get_sale_info
+        get_menu.add_command(label="Venda", command=sale_info)
+        paid_on_card = saleui.get_all_sales_paid_via_card
+        get_menu.add_command(label="Pagamento Cartão", command=paid_on_card)
+        paid_on_cash = saleui.get_all_sales_paid_via_cash
+        get_menu.add_command(label="Pagamento Dinheiro", command=paid_on_cash)
+        paid_on_pix = saleui.get_all_sales_paid_via_pix
+        get_menu.add_command(label="Pagamento Pix", command=paid_on_pix)
+        customer_history = saleui.get_customer_history
+        get_menu.add_command(label="Histórico do cliente", command=customer_history)
+        mensal_sales = saleui.get_monthly_sales
+        get_menu.add_command(label="Vendas mensais", command=mensal_sales)
 
         ##### CASCADES ####
         self.salemenu.add_cascade(label="Consultar", menu=get_menu)
@@ -153,10 +177,10 @@ class UserUI:
 
     def add_customer(self):
         self.role = "customer"
-        gui = tk.Toplevel(self.root)
-        gui.title("Cadastro de Cliente")
-        gui.geometry("420x200")
-        CenterWindow(gui)
+        self.gui = tk.Toplevel(self.root)
+        self.gui.title("Cadastro de Cliente")
+        self.gui.geometry("420x240")
+        CenterWindow(self.gui)
         fields = (
             "Nome",
             "CPF",
@@ -189,30 +213,30 @@ class UserUI:
         )
         self.entries = {}
         # padding at top
-        tk.Label(gui, text="").grid(row=0, column=0, columnspan=2)
+        tk.Label(self.gui, text="").grid(row=0, column=0, columnspan=2)
         # fields
         for field in fields:
             index = fields.index(field)  # index of field
             # Name of field
-            label = tk.Label(gui, text=field, width=20, anchor="w")
+            label = tk.Label(self.gui, text=field, width=20, anchor="w")
             label.grid(row=index + 1, column=0)
             # Entry of field
-            self.entries[field] = ttk.Entry(gui, width=30)
+            self.entries[field] = ttk.Entry(self.gui, width=30)
             self.entries[field].grid(row=(index + 1), column=1, sticky=tk.W)
             self.entries[field].insert(0, placeholders[index])
             # Focus on first field
             if index == 0:
                 self.entries[field].focus()
 
-        btn = ttk.Button(gui, text="Cadastrar", command=lambda: self.try_insert())
+        btn = ttk.Button(self.gui, text="Cadastrar", command=lambda: self.try_insert())
         btn.grid(row=len(fields) + 2, column=1, sticky=tk.W, pady=10)
 
     def add_seller(self):
         self.role = "seller"
-        gui = tk.Toplevel(self.root)
-        gui.title("Cadastro de Vendedor")
-        gui.geometry("420x280")
-        CenterWindow(gui)
+        self.gui = tk.Toplevel(self.root)
+        self.gui.title("Cadastro de Vendedor")
+        self.gui.geometry("420x280")
+        CenterWindow(self.gui)
         fields = (
             "Nome",
             "CPF",
@@ -251,22 +275,22 @@ class UserUI:
         )
         self.entries = {}
         # padding at top
-        tk.Label(gui, text="").grid(row=0, column=0, columnspan=2)
+        tk.Label(self.gui, text="").grid(row=0, column=0, columnspan=2)
 
         for field in fields:
             index = fields.index(field)  # index of field
             # Name of field
-            label = tk.Label(gui, text=field, width=20, anchor="w")
+            label = tk.Label(self.gui, text=field, width=20, anchor="w")
             label.grid(row=index + 1, column=0)
             # Entry of field
-            self.entries[field] = ttk.Entry(gui, width=30)
+            self.entries[field] = ttk.Entry(self.gui, width=30)
             self.entries[field].grid(row=(index + 1), column=1, sticky=tk.W)
             self.entries[field].insert(0, placeholders[index])
             # Focus on first field
             if index == 0:
                 self.entries[field].focus()
 
-        btn = ttk.Button(gui, text="Cadastrar", command=lambda: self.try_insert())
+        btn = ttk.Button(self.gui, text="Cadastrar", command=lambda: self.try_insert())
         btn.grid(row=len(fields) + 2, column=1, sticky=tk.W, pady=10)
 
     def get_all_customers(self):
@@ -301,13 +325,13 @@ class UserUI:
             except ValueError:
                 messagebox.showerror("Erro", "Data inválida")
 
-        gui = tk.Toplevel(self.root)
-        gui.title("Relatório Mensal")
-        gui.geometry("400x125")
-        CenterWindow(gui)
+        self.gui = tk.Toplevel(self.root)
+        self.gui.title("Relatório Mensal")
+        self.gui.geometry("400x125")
+        CenterWindow(self.gui)
 
-        tk.Label(gui, text="Mês (AAAA-MM)").pack(pady=10)
-        self.month = tk.Entry(gui, width=30)
+        tk.Label(self.gui, text="Mês (AAAA-MM)").pack(pady=10)
+        self.month = tk.Entry(self.gui, width=30)
         self.month.insert(0, date.today().strftime("%Y-%m"))
         self.month.pack()
 
@@ -321,7 +345,7 @@ class UserUI:
             )
 
         btn = tk.Button(
-            gui,
+            self.gui,
             text="Gerar Relatório",
             command=show_employee,
         )
@@ -476,10 +500,10 @@ class ProductUI:
 
     def add_product(self, type: str):
         self.type = type
-        gui = tk.Toplevel(self.root)
-        gui.title("Cadastro de Cliente")
-        gui.geometry("450x260")
-        CenterWindow(gui)
+        self.gui = tk.Toplevel(self.root)
+        self.gui.title("Cadastro de Produto")
+        self.gui.geometry("450x200")
+        CenterWindow(self.gui)
         fields = (
             "Nome",
             "Descrição",
@@ -496,7 +520,7 @@ class ProductUI:
         elif self.type == "electronic":
             product = RandomObject.Electronic()
         elif self.type == "home appliance":
-            product = RandomObject.HomeAppliance()
+            product = RandomObject.Home_Appliance()
         [
             name,
             description,
@@ -515,32 +539,32 @@ class ProductUI:
         )
         self.entries = {}
         # padding at top
-        tk.Label(gui, text="").grid(row=0, column=0, columnspan=2)
+        tk.Label(self.gui, text="").grid(row=0, column=0, columnspan=2)
         # fields
         for field in fields:
             index = fields.index(field)  # index of field
             # Name of field
-            label = tk.Label(gui, text=field, width=25, anchor="w")
+            label = tk.Label(self.gui, text=field, width=25, anchor="w")
             label.grid(row=index + 1, column=0)
             # Entry of field
-            self.entries[field] = ttk.Entry(gui, width=30)
+            self.entries[field] = ttk.Entry(self.gui, width=30)
             self.entries[field].grid(row=(index + 1), column=1, sticky=tk.W)
             self.entries[field].insert(0, placeholders[index])
             # Focus on first field
             if index == 0:
                 self.entries[field].focus()
 
-        label = tk.Label(gui, text="Fornecedor", width=25, anchor="w")
+        label = tk.Label(self.gui, text="Fornecedor", width=25, anchor="w")
         label.grid(row=len(fields) + 2, column=0)
-        self.provider = tk.StringVar(gui)
+        self.provider = tk.StringVar(self.gui)
         providers = ProviderController(self.db).get_all_providers()
         display = lambda p: f"{p.get_id()} - {p.get_name()} - {p.get_cnpj()}"
         self.provider.set(display(providers[0]))
-        op = tk.OptionMenu(gui, self.provider, *[display(p) for p in providers])
+        op = tk.OptionMenu(self.gui, self.provider, *[display(p) for p in providers])
         op.config(width=25)
         op.grid(row=len(fields) + 2, column=1)
 
-        btn = ttk.Button(gui, text="Cadastrar", command=lambda: self.try_insert())
+        btn = ttk.Button(self.gui, text="Cadastrar", command=lambda: self.try_insert())
         btn.grid(row=len(fields) + 3, column=1, sticky=tk.W, pady=10)
 
     def add_food(self):
@@ -558,37 +582,73 @@ class ProductUI:
     def get_all_products(self):
         products = ProductController(self.db).get_all_products()
         if products:
-            TextOutput(self.root).display(products, "Produtos")
+            self._prompt_sort_method(products, "Produtos")
         else:
             messagebox.showinfo("Aviso", "Não há produtos cadastrados")
 
     def get_all_foods(self):
         products = ProductController(self.db).get_all_foods()
         if products:
-            TextOutput(self.root).display(products, "Alimentos")
+            self._prompt_sort_method(products, "Alimentos")
         else:
             messagebox.showinfo("Aviso", "Não há alimentos cadastrados")
 
     def get_all_clothes(self):
         products = ProductController(self.db).get_all_clothes()
         if products:
-            TextOutput(self.root).display(products, "Roupas")
+            self._prompt_sort_method(products, "Roupas")
         else:
             messagebox.showinfo("Aviso", "Não há roupas cadastradas")
 
     def get_all_electronics(self):
         products = ProductController(self.db).get_all_electronics()
         if products:
-            TextOutput(self.root).display(products, "Eletrônicos")
+            self._prompt_sort_method(products, "Eletrônicos")
         else:
             messagebox.showinfo("Aviso", "Não há eletrônicos cadastrados")
 
     def get_all_home_appliances(self):
         products = ProductController(self.db).get_all_home_appliances()
         if products:
-            TextOutput(self.root).display(products, "Eletrodomésticos")
+            self._prompt_sort_method(products, "Eletrodomésticos")
         else:
             messagebox.showinfo("Aviso", "Não há eletrodomésticos cadastrados")
+
+    def get_most_sold_products(self):
+        products = ProductController(self.db).get_most_sold_products()
+        if products:
+            self._prompt_sort_method(products, "Produtos mais vendidos")
+        else:
+            messagebox.showinfo("Aviso", "Não há produtos mais vendidos")
+
+    def _prompt_sort_method(self, products, title: str):
+        self.gui = tk.Toplevel(self.root)
+        self.gui.title("Ordenar valores...")
+        self.gui.geometry("300x100")
+        CenterWindow(self.gui)
+
+        tk.Label(self.gui, text="Escolha o método de ordenação:").grid(row=0, column=0)
+        self.sort_method = tk.StringVar(self.gui)
+        self.sort_method.set("Bubblesort")
+        op = tk.OptionMenu(self.gui, self.sort_method, "Bubblesort", "Insertionsort")
+        op.config(width=20)
+        op.grid(row=1, column=0, sticky=tk.W)
+
+        btn = ttk.Button(
+            self.gui,
+            text="Ordenar",
+            command=lambda: self._sort_and_display(products, title),
+        )
+        btn.grid(row=1, column=1, sticky=tk.W, pady=10)
+
+    def _sort_and_display(self, products, title: str):
+        self.gui.destroy()
+        strategy = StrategyProduct()
+        if self.sort_method.get() == "Bubblesort":
+            products = strategy.sort("Bubblesort", products)
+        elif self.sort_method.get() == "Insertionsort":
+            products = strategy.sort("Insertionsort", products)
+        TextOutput(self.root).display(products, title)
 
     def try_insert(self):
         errors = self.validate_fields()
@@ -643,7 +703,7 @@ class ProductUI:
                     )
                 )
             messagebox.showinfo("Sucesso", "Produto cadastrado com sucesso")
-            self.root.destroy()
+            self.gui.destroy()
 
     def validate_fields(self):
         errors = []
@@ -651,77 +711,169 @@ class ProductUI:
             if not self.entries[field].get():
                 errors.append(f"O campo {field} não pode estar vazio")
         return errors
+        # TODO validate fields
 
 
 class ProviderUI:
-    def __init__(self, root, db):  # TODO FAZ ISSO
-        pass
+    def __init__(self, root: tk.Tk, db: str = "app.db"):
+        self.root: tk.Tk = root
+        self.db = db
 
-    def add_provider(self):  # TODO FAZE ISSO TBM
-        pass
+    def add_provider(self):
+        self.role = "provider"
+        self.gui = tk.Toplevel(self.root)
+        self.gui.title("Cadastro de Provedor")
+        self.gui.geometry("420x200")
+        CenterWindow(self.gui)
+        fields = (
+            "CNPJ",
+            "Nome",
+            "Descrição",
+            "Email",
+            "Telefone",
+            "Endereço",
+        )
+        [cnpj, name, description, email, phone, address] = RandomObjectInfo(
+            self.db, self.db, self.db
+        ).Provider()
+        placeholders = (
+            cnpj,
+            name,
+            description,
+            email,
+            phone,
+            address,
+        )
+        self.entries = {}
+        # padding at top
+        tk.Label(self.gui, text="").grid(row=0, column=0, columnspan=2)
 
-    def get_al_providers(self):
+        for field in fields:
+            index = fields.index(field)  # index of field
+            # Name of field
+            label = tk.Label(self.gui, text=field, width=20, anchor="w")
+            label.grid(row=index + 1, column=0)
+            # Entry of field
+            self.entries[field] = ttk.Entry(self.gui, width=30)
+            self.entries[field].grid(row=(index + 1), column=1, sticky=tk.W)
+            self.entries[field].insert(0, placeholders[index])
+            # Focus on first field
+            if index == 0:
+                self.entries[field].focus()
+
+        btn = ttk.Button(self.gui, text="Cadastrar", command=lambda: self.try_insert())
+        btn.grid(row=len(fields) + 2, column=1, sticky=tk.W, pady=10)
+
+        return
+
+    def get_all_providers(self):
         provider = ProviderController(self.db).get_all_providers()
         if provider:
-            TextOutput(self.root).display(provider, "Todos os provedores")
+            TextOutput(self.root).display(provider, "Todos os fornecedor")
         else:
-            messagebox.showinfo("Aviso", "não há provedores cadastrados")
+            messagebox.showinfo("Aviso", "não há fornecedores cadastrados")
 
-    def get_provider_by_id(self, id: int):
-        provider = ProviderController(self.db).get_provider_by_id(id)
-        if provider:
-            TextOutput(self.root).display(provider, "Provedor com o id", id)
-        else:
-            messagebox.showinfo("Aviso", "não existe um provedor com o id", id)
+    def get_provider_info(self):
+        self.gui = tk.Toplevel(self.root)
+        self.gui.title("Obter informações do fornecedor")
+        self.gui.geometry("300x100")
+        CenterWindow(self.gui)
 
-    def get_random_provider(self):
-        provider = ProviderController(self.db).get_random_provider()
+        tk.Label(self.gui, text="Escolha um dos fornecedores:").grid(row=0, column=0)
+        self.provider = tk.StringVar(self.gui)
+
+        display = lambda p: f"{p.get_id()} - {p.get_name()} - {p.get_cnpj()}"
+        providers = ProviderController(self.db).get_all_providers()
+        self.provider.set(display(providers[0]))
+        op = tk.OptionMenu(self.gui, self.provider, *[display(p) for p in providers])
+        op.config(width=20)
+        op.grid(row=1, column=0, sticky=tk.W)
+        btn = ttk.Button(
+            self.gui, text="Mostrar", command=lambda: self._show_provider()
+        )
+        btn.grid(row=1, column=1, sticky=tk.W, pady=10)
+
+    def _show_provider(self):
+        provider_id = self.provider.get().split(" - ")[0]
+        provider = ProviderController(self.db).get_provider_by_id(provider_id)
         if provider:
-            TextOutput(self.root).display(
-                provider, "Provedor selecionado aleatoriamente"
-            )
+            TextOutput(self.root).display(str(provider), "Informações do fornecedor")
         else:
-            messagebox.showinfo(
-                "Aviso", "não foi possivel selecionar um provedor aleatoriamente"
+            messagebox.showinfo("Aviso", "não há fornecedores cadastrados")
+
+    def try_insert(self):
+        errors = self._validate_fields()
+        if errors:
+            messagebox.showinfo("Erro", "\n".join(errors))
+        else:
+            c = ProviderController(self.db)
+            c.add_provider(
+                Provider(
+                    self.entries["CNPJ"].get(),
+                    self.entries["Nome"].get(),
+                    self.entries["Descrição"].get(),
+                    self.entries["Email"].get(),
+                    self.entries["Telefone"].get(),
+                    self.entries["Endereço"].get(),
+                )
             )
+            messagebox.showinfo("Sucesso", "Fornecedor cadastrado com sucesso")
+            self.gui.destroy()
+
+    def _validate_fields(self):
+        errors = []
+        for field in self.entries:
+            if not self.entries[field].get():
+                errors.append(f"O campo {field} não pode estar vazio")
+        return errors
+        # TODO validate fields
 
 
 class SaleUI:
-    def __init__(self, root, db):
+    def __init__(self, root: tk.Tk, db: str = "app.db"):
+        self.root = root
+        self.db = db
+
+    def add_sale(self):
         pass
 
     def get_all_sales(self):
         sale = SaleController(self.db).get_all_sales()
         if sale:
-            TextOutput(self.root).display(sale, "Todas as vendas realizadas")
+            TextOutput(self.root).display(sale, "Vendas realizadas")
         else:
             messagebox.showinfo("Aviso", "não existem vendas cadastradas")
 
-    def get_sale_by_id(self, id: int):
-        sale = SaleController(self.db).get_sale_by_id(id)
-        if sale:
-            TextOutput(self.db).display(sale, "Venda com o id:", id)
-        else:
-            messagebox.showinfo("aviso", "não existe uma venda com o id:", id)
+    def get_sale_info(self, id: int):
+        pass
 
-    def get_sale_and_profit_of_month(self, month, year):
-        sale = SaleController(self.db).get_all_sales_in_month(month, year)
-        if sale:
-            TextOutput(self.db).display(
-                sale, "vendas e lucro do mês", month, "no ano", year
-            )
-        else:
-            messagebox.showinfo(
-                "Aviso", "não foi possivel encontrar vendas na data selecionada"
-            )
+    def get_monthly_sales(self):
+        pass
 
-    def get_all_sales_paid_via_card(self):
-        sale = SaleController(self.db).get_all_sales_paid_via_card()
+    def get_all_sales_paid_via_cash(self):
+        sale = SaleController(self.db).get_all_sales_paid_via_cash()
         if sale:
             TextOutput(self.db).display(
                 sale, "Todas as vendas realizadas com cartão de crédito"
             )
         else:
             messagebox.showinfo(
-                "Aviso", "Não foram realizadas vendas com o cartão de crédito"
+                "Aviso", "não foram realizadas vendas pagas em dinheiro"
             )
+
+    def get_all_sales_paid_via_card(self):
+        sale = SaleController(self.db).get_all_sales_paid_via_card()
+        if sale:
+            TextOutput(self.db).display(sale, "Todas as vendas realizadas com dinheiro")
+        else:
+            messagebox.showinfo("Aviso", "não foram realizadas vendas pagas via cartão")
+
+    def get_all_sales_paid_via_pix(self):
+        sale = SaleController(self.db).get_all_sales_paid_via_pix()
+        if sale:
+            TextOutput(self.db).display(sale, "Tdoas as vendas realizadas com pix")
+        else:
+            messagebox.showinfo("Aviso", "não foram realizadas vendas com Pix")
+
+    def get_customer_history(self):
+        pass

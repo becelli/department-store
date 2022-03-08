@@ -153,3 +153,26 @@ class Clothing(Product):
 
     def calculate_value(self):
         return self._price * 1.0125
+
+
+class StrategyProduct:
+    def sort(self, method: str, array: list[Product]) -> list[Product]:
+        if method == "Bubblesort":
+            return self._bubble_sort(array)
+        elif method == "Insertionsort":
+            return self._insertion_sort(array)
+
+    def _bubble_sort(self, array: list[Product]) -> list:
+        for _ in range(len(array)):
+            for j in range(len(array) - 1):
+                if array[j].calculate_value() > array[j + 1].calculate_value():
+                    array[j], array[j + 1] = array[j + 1], array[j]
+        return array
+
+    def _insertion_sort(self, array: list[Product]) -> list:
+        for i in range(len(array)):
+            j = i
+            while j > 0 and array[j].calculate_value() < array[j - 1].calculate_value():
+                array[j], array[j - 1] = array[j - 1], array[j]
+                j -= 1
+        return array

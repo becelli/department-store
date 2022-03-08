@@ -755,6 +755,7 @@ class Database(object):
             f"SELECT id, COUNT(*) AS total FROM sale GROUP BY id ORDER BY total DESC LIMIT {n}"
         )
         products = [x[0] for x in self.fetch_all()]
+        print(products)  # TODO remove it. Just checking if it returns only one value.
         self.close()
         return self._iterator_append(products, self.select_product_by_id)
 

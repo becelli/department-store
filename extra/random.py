@@ -26,7 +26,7 @@ class RandomObjectInfo:
         name = self._random_electronic_device()
         description = f"{name} {self._random_electronics_description()}"
         fabrication = random.randint(current_year - 7, current_year)
-        price = random.randint(100, 1000) + random.random()
+        price = round(random.randint(100, 1000) + random.random(), 2)
         provider = ProviderController(self._provider_db_name).get_random_provider()
         is_available = True
         return name, description, fabrication, price, provider, is_available
@@ -36,7 +36,7 @@ class RandomObjectInfo:
         name = self._random_home_devices_names()
         description = f"{name} {self._random_homeappliance_description()}"
         fabrication = random.randint(current_year - 10, current_year)
-        price = random.randint(1000, 10000)
+        price = round(random.randint(1000, 10000), 2)
         provider = ProviderController(self._provider_db_name).get_random_provider()
         is_available = True
         return name, description, fabrication, price, provider, is_available
@@ -47,7 +47,7 @@ class RandomObjectInfo:
         description = f"{name} {self._random_product_description()}"
         provider = ProviderController(self._provider_db_name).get_random_provider()
         fabrication = random.randint(current_year - 1, current_year)
-        price = random.randint(10, 200)
+        price = round(random.randint(10, 200), 2)
         is_available = True
         return name, description, fabrication, price, provider, is_available
 
@@ -56,7 +56,7 @@ class RandomObjectInfo:
         name = self._random_clothing_name()
         description = f"{name} {self._random_clothing_description()}"
         fabrication = random.randint(current_year - 8, current_year)
-        price = random.randint(30, 500)
+        price = round(random.randint(30, 500), 2)
         provider = ProviderController(self._provider_db_name).get_random_provider()
         is_available = True
         return name, description, fabrication, price, provider, is_available
@@ -84,7 +84,7 @@ class RandomObjectInfo:
         email = (
             name.split(" ")[0].lower() + (self._nsize_num_as_str(5)) + self._emails()
         )
-        salary = random.randint(1000, 5000)
+        salary = round(random.randint(1000, 5000), 2)
         pis = self._nsize_num_as_str(11)
         admission = self._date(bdate.year + 16, date.now().year)
         return name, rg, cpf, bdate, address, zip_code, email, salary, pis, admission
@@ -95,7 +95,9 @@ class RandomObjectInfo:
             + f"000{random.randint(1, 9)}"
             + self._nsize_num_as_str(2)
         )
-        name = self._provider_name()
+        r = random.randint(0, 2)
+        extra = "" if r == 0 else " LTDA" if r == 1 else " MEI"
+        name = self._provider_name() + extra
         description = self._provider_description()
         email = name.split(" ")[0].lower() + self._nsize_num_as_str(3) + self._emails()
         phone = self._nsize_num_as_str(11)
