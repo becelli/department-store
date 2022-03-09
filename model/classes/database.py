@@ -208,7 +208,7 @@ class Database(object):
 
         self.execute(
             """
-            CREATE TABLE IF NOT EXISTS sold_product (
+            CREATE TABLE IF NOT EXISTS sale_item (
                 sale_id PRIMARY KEY,
                 id INTEGER NOT NULL,
                 quantity INTEGER NOT NULL,

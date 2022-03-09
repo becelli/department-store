@@ -20,6 +20,8 @@ from model.classes.product import (
 )
 from model.classes.provider import Provider
 from model.classes.user import Customer, Seller
+from model.classes.payment import Payment
+from model.classes.sale import Sale, SaleItem
 from view.output import TextOutput
 from view.window import CenterWindow
 
@@ -835,7 +837,147 @@ class SaleUI:
         self.db = db
 
     def add_sale(self):
-        pass
+        self.gui = tk.Toplevel(self.root)
+        self.gui.title("Cadastro de Venda")
+        self.gui.geometry("500x225")
+        f_width = 25
+        CenterWindow(self.gui)
+        r = 0
+        tk.Label(self.gui, text="").grid(row=r, column=0, columnspan=2)
+        r += 1
+        display = lambda p: f"{p.get_id()} - {p.get_name()} - {p.get_cpf()}"
+        sellers = UserController(self.db).get_all_sellers()
+        customers = UserController(self.db).get_all_customers()
+        # Seller
+        tk.Label(self.gui, text="Vendedor", width=25, anchor="w").grid(row=r, column=0)
+        self.seller = tk.StringVar(self.gui)
+        self.seller.set(display(sellers[0]))
+        op_s = tk.OptionMenu(self.gui, self.seller, *[display(i) for i in sellers])
+        op_s.config(width=f_width)
+        op_s.grid(row=r, column=1)
+        r += 1
+        # Customer
+        tk.Label(self.gui, text="Cliente", width=25, anchor="w").grid(row=r, column=0)
+        self.customers = tk.StringVar(self.gui)
+        self.customers.set(display(customers[0]))
+        op_c = tk.OptionMenu(self.gui, self.customers, *[display(i) for i in customers])
+        op_c.config(width=f_width)
+        op_c.grid(row=r, column=1)
+        r += 1
+        # Date
+        tk.Label(self.gui, text="Data", width=f_width, anchor="w").grid(row=r, column=0)
+        self.date = tk.StringVar(self.gui)
+        self.date.set(date.now().strftime("%Y-%m-%d"))
+        tk.Entry(self.gui, text=self.date, width=25).grid(row=r, column=1)
+        r += 1
+        # Products
+        tk.Label(self.gui, text="Produtos", width=f_width, anchor="w").grid(
+            row=r, column=0
+        )
+        # Open a new window to select products
+        self.products = []
+        tk.Label(self.gui, text="Valor Bruto", width=f_width, anchor="w").grid(
+            row=r + 1, column=0
+        )
+        self.price_label = tk.Label(self.gui, text="0", width=25)
+        self.price_label.grid(row=r + 1, column=1)
+        btn = ttk.Button(
+            self.gui, text="Selecionar", command=lambda: self._select_products()
+        )
+        btn.grid(row=r, column=1, sticky=tk.W, pady=10)
+
+        btn2 = ttk.Button(
+            self.gui, text="Limpar", command=lambda: self._clear_products()
+        )
+        btn2.grid(row=r, column=1, sticky=tk.W, pady=10, padx=100)
+        r += 2
+
+        # Buttons
+        btn = ttk.Button(
+            self.gui, text="Cadastrar", command=lambda: self._insert_sale()
+        )
+        btn.grid(row=r, column=1, sticky=tk.W, pady=10)
+        btn2 = ttk.Button(self.gui, text="Cancelar", command=lambda: self.gui.destroy())
+        btn2.grid(row=r, column=0, sticky=tk.E, pady=10)
+
+    def _insert_sale(self):
+        # Count equal products
+        products: list[Product] = self.products
+        count = {}
+        for p in products:
+            if p.get_id() in count:
+                count[p.get_id()] += 1
+            else:
+                count[p.get_id()] = 1
+
+        # Create SaleItem
+        self.sale_items = []
+        for i in count:
+            product = ProductController(self.db).get_product_by_id(i)
+            quantity = count[i]
+            self.sale_items.append(SaleItem(product, quantity))
+
+        # Create Sale
+        customer_id = self.customers.get().split(" - ")[0]
+        customer = UserController(self.db).get_customer_by_id(customer_id)
+        seller_id = self.seller.get().split(" - ")[0]
+        seller = UserController(self.db).get_seller_by_id(seller_id)
+        self.sale = None
+        try:
+            sale_date = date.strptime(self.date.get(), "%Y-%m-%d")
+            self.sale = Sale(customer, seller, sale_date, None)
+            self._select_payment()
+        except ValueError:
+            messagebox.showerror("Erro", "Data inválida")
+
+    def _update_price(self):
+        self.price_label.config(
+            text=f"{round(sum([i.get_price() for i in self.products]), 2)}"
+        )
+
+    def _clear_products(self):
+        self.products = []
+        self._update_price()
+
+    def _select_products(self):
+        self.gui_p = tk.Toplevel(self.root)
+        self.gui_p.title("Selecionar produtos")
+        self.gui_p.geometry("400x100")
+        CenterWindow(self.gui_p)
+        self.gui_p.grab_set()
+        self.gui_p.focus_set()
+        r = 0
+        tk.Label(self.gui_p, text="").grid(row=r, column=0, columnspan=2)
+        r += 1
+        display = lambda p: f"{p.get_id()} - {p.get_name()} - {p.get_price()}"
+        products = ProductController(self.db).get_all_products()
+        self.product = tk.StringVar(self.gui_p)
+        self.product.set(display(products[0]))
+        op = tk.OptionMenu(self.gui_p, self.product, *[display(i) for i in products])
+        op.config(width=25)
+        op.grid(row=r, column=0, sticky=tk.W)
+        # Field that only accepts numbers
+        self.quantity = tk.StringVar(self.gui_p)
+        self.quantity.set("1")
+        tk.Entry(self.gui_p, text=self.quantity, width=5).grid(row=r, column=1)
+        btn = ttk.Button(
+            self.gui_p,
+            text="Adicionar",
+            command=lambda: self._add_product_to_cart(),
+        )
+        btn.grid(row=r, column=2, sticky=tk.W, pady=10)
+
+    def _add_product_to_cart(self):
+        product_id = self.product.get().split(" - ")[0]
+        quantity = 1
+        try:
+            quantity = int(self.quantity.get())
+            selected = ProductController(self.db).get_product_by_id(product_id)
+            for _ in range(quantity):
+                self.products.append(selected)
+            self._update_price()
+        except ValueError:
+            messagebox.showinfo("Erro", "Quantidade inválida")
 
     def get_all_sales(self):
         sale = SaleController(self.db).get_all_sales()
@@ -844,8 +986,42 @@ class SaleUI:
         else:
             messagebox.showinfo("Aviso", "não existem vendas cadastradas")
 
-    def get_sale_info(self, id: int):
-        pass
+    def get_sale_info(self):
+        self.gui: tk.Toplevel = tk.Toplevel(self.root)
+        self.gui.title("Obter informações das vendas")
+        self.gui.geometry("300x100")
+        CenterWindow(self.gui)
+        r = 0
+        tk.Label(self.gui, text="").grid(row=0, column=0, columnspan=2)
+        tk.Label(self.gui, text="Selecione a venda desejada:").grid(row=r, column=0)
+        sales = SaleController(self.db).get_all_sales()
+        if sales:
+
+            def display(sale: Sale):
+                return f"{sale.get_id()} - {sale.get_sell_date()}"
+
+            self.sale = tk.StringVar(self.gui)
+            self.sale.set(display(sales[0]))
+            op = tk.OptionMenu(self.gui, self.sale, *[display(i) for i in sales])
+            op.config(width=25)
+            op.grid(row=r, column=1)
+            r += 1
+            btn = ttk.Button(
+                self.gui,
+                text="Obter informações",
+                command=lambda: self._get_sale_info(),
+            )
+            btn.grid(row=r, column=0, sticky=tk.W, pady=10)
+        else:
+            messagebox.showinfo("Aviso", "Não existem vendas cadastradas")
+
+    def _show_sale(self):
+        sale_id = self.sale.get().split(" - ")[0]
+        sale = SaleController(self.db).get_sale_by_id(sale_id)
+        if sale:
+            TextOutput(self.root).display(str(sale), "Informações da venda")
+        else:
+            messagebox.showinfo("Aviso", "Esta venda não existe")
 
     def get_monthly_sales(self):
         pass
@@ -877,3 +1053,32 @@ class SaleUI:
 
     def get_customer_history(self):
         pass
+
+    def _select_payment(self):
+        self.gui_payment = tk.Toplevel(self.root)
+        self.gui_payment.title("Método de Pagamento")
+        self.gui_payment.geometry("500x160")
+        CenterWindow(self.gui_payment)
+        tk.Label(self.gui_payment, text="Selecione o método de pagamento:").grid(
+            row=0, column=0, columnspan=2
+        )
+        self.payment = tk.StringVar(self.gui_payment)
+        self.payment.set("Dinheiro")
+        op = tk.OptionMenu(
+            self.gui_payment, self.payment, "Dinheiro", "Cartão de Crédito", "Pix"
+        )
+        op.config(width=25)
+        op.grid(row=1, column=0, sticky=tk.W)
+        tk.Label(self.gui_payment, text="Valor da venda:").grid(row=2, column=0)
+        
+        self.total_value = self.sale.calculate_total_value()
+        self.value = tk.Label(self.gui_payment, text="R$ 0.00")
+        self.value.grid(row=2, column=1)
+
+        tk.Entry(self.gui_payment, text=self.value, width=5).grid(row=2, column=1)
+        btn = ttk.Button(
+            self.gui_payment,
+            text="Pagar",
+            command=lambda: self._pay_sale(),
+        )
+        btn.grid(row=3, column=0, sticky=tk.W, pady=10)

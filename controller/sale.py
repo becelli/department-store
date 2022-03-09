@@ -1,10 +1,10 @@
-import model.classes.database as database
-import model.classes.sale as sale
+from model.classes.database import Database
+from model.classes.sale import Sale
 
 
 class SaleController:
     def __init__(self, db: str = "app.db"):
-        self.db = database.Database(db)
+        self.db = Database(db)
 
     def get_sale_item_by_id(self):
         return self.db.select_sale_item_by_id()
@@ -12,7 +12,7 @@ class SaleController:
     def get_sale_by_id(self):
         return self.db.select_sale_by_id()
 
-    def get_all_sales(self):
+    def get_all_sales(self) -> list[Sale]:
         return self.db.select_all_sales()
 
     def get_all_sales_in_month(self, month: int, year: int):
