@@ -63,13 +63,29 @@ class Sale:
         self._id = id
 
     def __str__(self):
+        customer = self.get_customer()
+        seller = self.get_seller()
+        # itens = [
+        #     f"{item.get_quantity()}x {item.get_product().get_price()} - {item.get_product().get_name()}\n"
+        #     for item in self.get_itens()
+        # ]
+        itens = "".join(
+            [
+                f"{item.get_quantity()}x {item.get_product().get_price()} - {item.get_product().get_name()}\n"
+                for item in self.get_itens()
+            ]
+        )
+
         return (
-            f"Venda: {self.get()}: {self.get_date()}"
-            f"\nClente: {self.get_customer()}"
-            f"\nVendedor: {self.get_seller()}"
-            f"\nValor Total: {self.get_total_value()}"
-            f"\nDesconto: {self.get_discount()}"
-            f"\nForma de Pagamento: {self.get_payment_method()}"
+            f"Venda {self.get_id()}:"
+            + f"\nData: {str(self.get_date())[:10]}"
+            + f"\nCliente: {customer.get_id()} - {customer.get_name()}"
+            + f"\nVendedor: {seller.get_id()} - {seller.get_name()}"
+            + f"\nValor Total: {round(self.get_total_value(), 2)}"
+            + f"\nDesconto: {round(self.get_discount(), 2)}"
+            + f"\nForma de Pagamento: {self.get_payment_method().get_payment_type()}"
+            + f"\nItens:"
+            + f"\n{itens}"
         )
 
     def get_id(self):
@@ -124,6 +140,17 @@ class Sale:
             except StopIteration:
                 break
         return total
+
+    def get_taxes(self):
+        total = 0
+        iterator = iter(self.get_itens())
+        while True:
+            try:
+                item: SaleItem = next(iterator)
+                total += item.get_product().get_price() * item.get_quantity()
+            except StopIteration:
+                break
+        return self.get_total_value() - total
 
     def get_discount(self):
         value = self.get_total_value()

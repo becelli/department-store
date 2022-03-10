@@ -20,7 +20,7 @@ from model.classes.product import (
 )
 from model.classes.provider import Provider
 from model.classes.user import Customer, Seller
-from model.classes.payment import Payment
+from model.classes.payment import Cash, CreditCard, Payment
 from model.classes.sale import Sale, SaleItem
 from view.output import TextOutput
 from view.window import CenterWindow
@@ -386,7 +386,7 @@ class UserUI:
                         ),
                     )
                 )
-            elif type == "customer":
+            elif self.role == "customer":
                 self.userc.add_user(
                     Customer(
                         self.entries["Nome"].get(),
@@ -653,7 +653,7 @@ class ProductUI:
         TextOutput(self.root).display(products, title)
 
     def try_insert(self):
-        errors = self.validate_fields()
+        errors = self.validate_fields_products()
         if errors:
             messagebox.showinfo("Erro", "\n".join(errors))
         else:
@@ -707,13 +707,63 @@ class ProductUI:
             messagebox.showinfo("Sucesso", "Produto cadastrado com sucesso")
             self.gui.destroy()
 
-    def validate_fields(self):
+    def validate_fields_products(self):
+        description = self.entries["Descrição"].get()
+        name = self.entries["Nome"].get()
+        fabrication_date = self.entries["Data de fabricação"].get()
+        price = self.entries["Preço"].get()
+        avaliable = self.entries["Está disponível? [Sim/Não]"].get()
         errors = []
-        for field in self.entries:
-            if not self.entries[field].get():
-                errors.append(f"O campo {field} não pode estar vazio")
+        flag = 0
+
+        # validar nome
+        if name is None:
+            errors.append("Nome não deve estar vazio")
+        if len(name) < 2:
+            errors.append("Nome deve conter no mínimo 2 caracteres")
+        if len(name) > 50:
+            errors.append("Nome deve conter no máximo 50 caracteres")
+        for i in range(len(name)):
+            if name[i].isdigit():
+                errors.append("Nome não pode conter números")
+                break
+
+        # validar disponível
+        if avaliable is None:
+            errors.append("Selecione ao menos uma das opções")
+        if avaliable.get() != "Sim" and avaliable.get() != "Não":
+            errors.append("Selecione ao menos uma das opções: Sim ou Não")
+
+        # validar preço
+        if price is None:
+            errors.append("Preço não pode estar vazio")
+        try:
+            float(price)
+        except ValueError:
+            errors.append("Preço deve ser um número")
+        # validar descrição
+        if description is None:
+            errors.append("Descrição não pode estar vazia")
+        if len(description) < 3:
+            errors.append("Descrição deve conter no mínimo 3 caracteres")
+        if len(description) > 500:
+            errors.append("Descrição deve conter no máximo 500 caracteres")
+        for i in range(len(description)):
+            if description[i].isdigit():
+                errors.append("Descrição não pode conter números")
+                break
+
+        # validar data de fabricação
+        if fabrication_date is None:
+            errors.append("Data de fabricação não pode ser vazia")
+        if len(fabrication_date) != 10:
+            errors.append("Data de fabricação deve conter 10 caracteres")
+        try:
+            date.strptime(fabrication_date, "%Y-%m-%d")
+        except ValueError:
+            errors.append("Data de fabricação deve estar no formato YYYY-MM-DD")
+
         return errors
-        # TODO validate fields
 
 
 class ProviderUI:
@@ -896,9 +946,9 @@ class SaleUI:
         btn = ttk.Button(
             self.gui, text="Cadastrar", command=lambda: self._insert_sale()
         )
-        btn.grid(row=r, column=1, sticky=tk.W, pady=10)
+        btn.grid(row=r, column=1, sticky=tk.W, pady=10, padx=20)
         btn2 = ttk.Button(self.gui, text="Cancelar", command=lambda: self.gui.destroy())
-        btn2.grid(row=r, column=0, sticky=tk.E, pady=10)
+        btn2.grid(row=r, column=0, sticky=tk.E, pady=10, padx=20)
 
     def _insert_sale(self):
         # Count equal products
@@ -925,7 +975,13 @@ class SaleUI:
         self.sale = None
         try:
             sale_date = date.strptime(self.date.get(), "%Y-%m-%d")
-            self.sale = Sale(customer, seller, sale_date, None)
+            self.sale: Sale = Sale(
+                customer=customer,
+                seller=seller,
+                date=sale_date,
+                itens=self.sale_items,
+                payment_method=None,
+            )
             self._select_payment()
         except ValueError:
             messagebox.showerror("Erro", "Data inválida")
@@ -1057,28 +1113,150 @@ class SaleUI:
     def _select_payment(self):
         self.gui_payment = tk.Toplevel(self.root)
         self.gui_payment.title("Método de Pagamento")
-        self.gui_payment.geometry("500x160")
+        self.gui_payment.geometry("245x200")
         CenterWindow(self.gui_payment)
+        r = 0
+        tk.Label(self.gui_payment, text="").grid(row=r, column=0, columnspan=2)
+        r += 1
         tk.Label(self.gui_payment, text="Selecione o método de pagamento:").grid(
-            row=0, column=0, columnspan=2
+            row=r, column=0, columnspan=2
         )
+        r += 1
+
         self.payment = tk.StringVar(self.gui_payment)
         self.payment.set("Dinheiro")
         op = tk.OptionMenu(
             self.gui_payment, self.payment, "Dinheiro", "Cartão de Crédito", "Pix"
         )
         op.config(width=25)
-        op.grid(row=1, column=0, sticky=tk.W)
-        tk.Label(self.gui_payment, text="Valor da venda:").grid(row=2, column=0)
-        
-        self.total_value = self.sale.calculate_total_value()
-        self.value = tk.Label(self.gui_payment, text="R$ 0.00")
-        self.value.grid(row=2, column=1)
+        op.grid(row=r, column=0, sticky=tk.W)
+        r += 1
 
-        tk.Entry(self.gui_payment, text=self.value, width=5).grid(row=2, column=1)
-        btn = ttk.Button(
+        brute_price = round(float(self.price_label.cget("text")), 2)
+        tk.Label(self.gui_payment, text=f"Valor Bruto: {brute_price}").grid(
+            row=r, column=0, sticky=tk.W
+        )
+        r += 1
+
+        tk.Label(
+            self.gui_payment,
+            text=f"Desconto (Cliente Ouro): {round(self.sale.get_discount(), 2)}",
+        ).grid(row=r, column=0, sticky=tk.W)
+        r += 1
+
+        tk.Label(
+            self.gui_payment,
+            text=f"Impostos: {round(self.sale.get_taxes(), 2)}",
+        ).grid(row=r, column=0, sticky=tk.W)
+        r += 1
+
+        self.total_value = self.sale.calculate_total_value()
+        self.value = tk.Label(
+            self.gui_payment, text="Valor total: " + str(round(self.total_value, 2))
+        )
+        self.value.grid(row=r, column=0, sticky=tk.W)
+        r += 1
+
+        ttk.Button(
             self.gui_payment,
             text="Pagar",
             command=lambda: self._pay_sale(),
+        ).grid(row=r, column=0, sticky=tk.W, pady=10, padx=75)
+
+    def _pay_sale(self):
+        c = SaleController(self.db)
+        payment = None
+        if self.payment.get() == "Dinheiro":
+            payment = Cash("Dinheiro")
+
+        elif self.payment.get() == "Cartão de Crédito":
+            self._card_info_UI()
+            payment = CreditCard(
+                "Cartão",
+                self.card_holder.get(),
+                self.card_flag.get(),
+                self.card_number.get(),
+            )
+
+        elif self.payment.get() == "Pix":
+            self._pix_info_UI()
+
+        p_id = c.insert_payment(payment)
+        payment.set_id(p_id)
+        self.sale.set_payment_method(payment)
+        c.insert_sale(self.sale)
+        self.gui.destroy()
+        messagebox.showinfo("Aviso", "Venda realizada com sucesso")
+        self.gui_payment.destroy()
+
+    def _card_info_UI(self):
+        self.gui_card = tk.Toplevel(self.root)
+        self.gui_card.title("Informações do Cartão")
+        self.gui_card.geometry("300x200")
+        CenterWindow(self.gui_card)
+        [_, name, flag, number] = RandomObjectInfo.Credit_card_payment()
+        r = 0
+        tk.Label(self.gui_card, text="").grid(row=r, column=0, columnspan=2)
+        r += 1
+        tk.Label(self.gui_card, text="Informações do cartão").grid(
+            row=r, column=0, columnspan=2
         )
-        btn.grid(row=3, column=0, sticky=tk.W, pady=10)
+        r += 1
+        tk.Label(self.gui_card, text="Nome do titular:").grid(
+            row=r, column=0, sticky=tk.W
+        )
+        self.card_holder = tk.Entry(self.gui_card, width=25)
+        self.card_holder.set(name)
+        self.card_holder.grid(row=r, column=1, sticky=tk.W)
+        r += 1
+        tk.Label(self.gui_card, text="Número do cartão:").grid(
+            row=r, column=0, sticky=tk.W
+        )
+        self.card_number = tk.Entry(self.gui_card, width=25)
+        self.card_number.set(number)
+        self.card_number.grid(row=r, column=1, sticky=tk.W)
+        r += 1
+        tk.Label(self.gui_card, text="Bandeira:").grid(row=r, column=0, sticky=tk.W)
+        self.card_flag = tk.Entry(self.gui_card, width=25)
+        self.card_flag.set(flag)
+        self.card_flag.grid(row=r, column=1, sticky=tk.W)
+        r += 1
+        btn = ttk.Button(
+            self.gui_card,
+            text="Pagar",
+            command=lambda: self._validate_payment_info("card"),
+        )
+        btn.grid(row=r, column=0, sticky=tk.W, pady=10, padx=75)
+
+    def _pix_info_UI(self):
+        self.gui_pix = tk.Toplevel(self.root)
+        self.gui_pix.title("Informações do Cartão")
+        self.gui_pix.geometry("300x150")
+        CenterWindow(self.gui_pix)
+        [_, code] = RandomObjectInfo.Pix_payment()
+        r = 0
+        tk.Label(self.gui_pix, text="").grid(row=r, column=0, columnspan=2)
+        r += 1
+        self.pix_code = tk.Entry(self.gui_pix, width=25)
+        self.pix_code.set(code)
+        self.pix_code.grid(row=r, column=1, sticky=tk.W)
+        r += 1
+        btn = ttk.Button(
+            self.gui_pix,
+            text="Pagar",
+            command=lambda: self._validate_payment_info("pix"),
+        )
+        btn.grid(row=r, column=0, sticky=tk.W, pady=10, padx=75)
+
+    def _validate_payment_info(self, payment_type):
+        # payment_type could be "card" or "pix"
+        if (
+            self.card_holder.get() == ""
+            or self.card_number.get() == ""
+            or self.card_flag.get() == ""
+        ):
+            messagebox.showinfo("Aviso", "Preencha todos os campos")
+        else:
+            self._pay_sale()
+
+    # TODO validate pix info

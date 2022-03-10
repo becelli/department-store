@@ -107,9 +107,9 @@ class RandomObjectInfo:
     def Cash_payment(self) -> list[str]:
         return "Dinheiro"
 
-    def Credit_card_payment(self) -> list[str, str, str, str]:
-        payment_type = "Cartão de credito"
-        name = self._random_credit_card_names()
+    def Credit_card_payment(self, name: str = None) -> list[str, str, str, str]:
+        payment_type = "Cartão"
+        name = name if name else self._names()
         flag = self._card_flag()
         number = self._nsize_num_as_str(16)
         return payment_type, name, flag, number

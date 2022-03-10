@@ -1,6 +1,7 @@
 import sqlite3 as sql
 import random as random
-from model.classes.payment import Payment
+from datetime import datetime as date
+from model.classes.payment import Cash, CreditCard, Payment, Pix
 from model.classes.product import Clothing, Electronic, Food, Home_Appliance, Product
 from model.classes.provider import Provider
 from model.classes.sale import Sale, SaleItem
@@ -198,7 +199,7 @@ class Database(object):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 customer_id INTEGER NOT NULL,
                 seller_id INTEGER NOT NULL,
-                date TEXT NOT NULL,
+                date DATE NOT NULL,
                 payment_method_id INTEGER NOT NULL,
                 FOREIGN KEY(seller_id) REFERENCES seller(id)
                 FOREIGN KEY(payment_method_id) REFERENCES payment_method(id)
@@ -209,8 +210,9 @@ class Database(object):
         self.execute(
             """
             CREATE TABLE IF NOT EXISTS sale_item (
-                sale_id PRIMARY KEY,
-                id INTEGER NOT NULL,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sale_id INTEGER NOT NULL,
+                product_id INTEGER NOT NULL,
                 quantity INTEGER NOT NULL,
                 FOREIGN KEY(sale_id) REFERENCES sale(id) ON DELETE CASCADE,
                 FOREIGN KEY(id) REFERENCES product(id)
@@ -225,17 +227,18 @@ class Database(object):
 
         self.execute(
             """
-            CREATE TABLE IF NOT EXISTS payment_method(
+            CREATE TABLE IF NOT EXISTS payment_method (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL
+                name TEXT NOT NULL CHECK(name = 'card' OR name = 'pix' OR name = 'cash')
             )"""
         )
         self.commit()
 
         self.execute(
             """
-            CREATE TABLE IF NOT EXISTS credit_card (
+            CREATE TABLE IF NOT EXISTS card (
                 id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
                 flag TEXT NOT NULL,
                 number TEXT NOT NULL CHECK(LENGTH(number) = 16),
                 FOREIGN KEY(id) REFERENCES payment_method(id)
@@ -337,15 +340,57 @@ class Database(object):
             "is_golden": customer[1],
         }
 
-    # TODO IT RIGHT?
-    def _select_payment_method_data_by_id(self, id: int):
+    def _select_payment_on_cash_data_by_id(self, id: int) -> dict:
         self.connect()
-        self.execute("SELECT * FROM payment_method WHERE id = ?", (id,))
-        payment_method = self.fetch_one()
+        self.execute("SELECT id FROM cash WHERE id = ?", (id,))
+        query = self.fetch_one()
         self.close()
+        if query is None:
+            return None
+        [_] = query
         return {
-            "id": payment_method[0],
-            "name": payment_method[1],
+            "id": id,
+        }
+
+    def _select_payment_on_card_data_by_id(self, id: int) -> dict:
+        self.connect()
+        self.execute(f"SELECT name, flag, number FROM credit_card WHERE id = {id}")
+        query = self.fetch_one()
+        self.close()
+        if query is None:
+            return None
+        [name, flag, number] = query
+        return {
+            "id": id,
+            "name": name,
+            "flag": flag,
+            "number": number,
+        }
+
+    def _select_payment_on_pix_data_by_id(self, id: int) -> dict:
+        self.connect()
+        self.execute(f"SELECT code FROM pix WHERE id = {id}")
+        query = self.fetch_one()
+        self.close()
+        if query is None:
+            return None
+        [code] = query
+        return {
+            "id": id,
+            "code": code,
+        }
+
+    def _select_payment_data_by_id(self, id: int) -> dict:
+        self.connect()
+        self.execute("SELECT name FROM payment_method WHERE id = ?", (id,))
+        query = self.fetch_one()
+        self.close()
+        if query is None:
+            return None
+        [name] = query
+        return {
+            "name": name,
+            "id": id,
         }
 
     # SINGLE RESULT
@@ -506,43 +551,64 @@ class Database(object):
             id=id,
         )
 
-    def select_sale_item_by_id(self, id: int) -> SaleItem:
+    def select_sale_itens_by_sale_id(self, sale_id: int) -> list[SaleItem]:
         self.connect()
-        self.execute("SELECT * FROM sale_item WHERE id = ?", (id,))
-        sale_item = self.fetch_one()
+        self.execute(f"SELECT * FROM sale_item WHERE sale_id = {sale_id}")
+        query = self.fetch_all()
         self.close()
-        if sale_item is None:
+        if query is None:
             return None
-        return SaleItem(
-            self.select_by_id(sale_item["id"]),
-            sale_item["quantity"],
-            sale_item["id"],
-        )
+        sale_itens: list[SaleItem] = []
+        for i in query:
+            [id, _, product_id, quantity] = i
+            sale_itens.append(
+                SaleItem(
+                    product=self.select_product_by_id(product_id),
+                    quantity=quantity,
+                    id=id,
+                )
+            )
+        return sale_itens
 
     def select_sale_by_id(self, id: int) -> Sale:
         self.connect()
-        self.execute("SELECT * FROM sale WHERE id = ?", (id,))
-        sale = self.fetch_one()
+        self.execute(f"SELECT * FROM sale WHERE id = {id}")
+        query = self.fetch_one()
         self.close()
-        if sale is None:
+        if query is None:
             return None
-
+        [_, customer_id, seller_id, sell_date, payment_method_id] = query
         return Sale(
-            customer=self.select_customer_by_id(sale["customer_id"]),
-            seller=self.select_seller_by_id(sale["seller_id"]),
-            sell_date=sale["date"],
-            itens=self._iterator_append(sale["items"], self.select_sale_item_by_id),
-            payment_mathod=None,  # TODO
-            id=sale["id"],
+            customer=self.select_customer_by_id(customer_id),
+            seller=self.select_seller_by_id(seller_id),
+            date=date.strptime(str(sell_date)[:10], "%Y-%m-%d"),
+            itens=self.select_sale_itens_by_sale_id(id),
+            payment_method=self.select_payment_method_by_id(payment_method_id),
+            id=id,
         )
 
     def select_payment_method_by_id(self, id: int) -> Payment:
-        self.connect()
-        self.execute("SELECT * FROM payment_method WHERE id = ?", (id,))
-        payment_method = self.fetch_one()
-        self.close()
+        payment_method = self._select_payment_data_by_id(id)
         if payment_method is None:
             return None
+        elif payment_method["name"] == "card":
+            card = self._select_payment_on_card_data_by_id(id)
+            return CreditCard(
+                payment_type="Cartão",
+                name=card["name"],
+                flag=card["flag"],
+                number=card["number"],
+                id=id,
+            )
+        elif payment_method["name"] == "pix":
+            pix = self._select_payment_on_pix_data_by_id(id)
+            return Pix(
+                payment_type="Pix",
+                code=pix["code"],
+                id=id,
+            )
+        elif payment_method["name"] == "cash":
+            return Cash(payment_type="Dinheiro", id=id)
 
     # MULTIPLE
     def select_all_products(self) -> list[Product]:
@@ -748,7 +814,6 @@ class Database(object):
     def select_all_sales_paid_via_pix(self) -> list[Sale]:
         return self._select_all_sales_paid_with("pix")
 
-    # select most sold products
     def select_most_sold_products(self, n: int = 10) -> list[Product]:
         self.connect()
         self.execute(
@@ -759,6 +824,7 @@ class Database(object):
         self.close()
         return self._iterator_append(products, self.select_product_by_id)
 
+    # INSERT
     def insert_product(self, product: Product):
         type: str = product.__class__.__name__.lower()
 
@@ -834,15 +900,14 @@ class Database(object):
         self.commit()
         self.close()
 
-    def insert_sale_item(self, sale_item: SaleItem) -> int:
+    def _insert_sale_item(self, sale_item: SaleItem, sale_id: int) -> int:
         self.connect()
         self.execute(
-            "INSERT INTO sale_item (sale_id, id, quantity, price) VALUES (?, ?, ?, ?)",
+            "INSERT INTO sale_item (sale_id, product_id, quantity) VALUES (?, ?, ?)",
             (
-                sale_item.get_sale_id(),
-                sale_item.get_id().get_id(),
+                sale_id,
+                sale_item.get_product().get_id(),
                 sale_item.get_quantity(),
-                sale_item.get_price(),
             ),
         )
         self.commit()
@@ -851,18 +916,26 @@ class Database(object):
     def insert_sale(self, sale: Sale) -> int:
         self.connect()
         self.execute(
-            "INSERT INTO sale (customer_id, seller_id, id, date) VALUES (?, ?, ?, ?)",
+            "INSERT INTO sale (customer_id, seller_id, date, payment_method_id) VALUES (?, ?, ?, ?)",
             (
                 sale.get_customer().get_id(),
                 sale.get_seller().get_id(),
-                sale.get_payment_method().get_id(),
                 sale.get_date(),
+                sale.get_payment_method().get_id(),
             ),
         )
-        row = self.lastrowid()
         self.commit()
         self.close()
-        return row
+        id: int = self.lastrowid()
+        # Inserting sale items
+        iterator = iter(sale.get_itens())
+        while True:
+            try:
+                sale_item: SaleItem = next(iterator)
+                self._insert_sale_item(sale_item, id)
+            except StopIteration:
+                break
+        return id
 
     def select_all_payment_methods(self) -> list[Payment]:
         self.connect()
@@ -871,16 +944,59 @@ class Database(object):
         self.close()
         return self._iterator_append(payment_methods, self.select_payment_method_by_id)
 
-    def insert_payment_method(self, payment_method: Payment):
-        type = payment_method.__class__.__name__.lower()
+    def insert_payment_method(self, payment_method: Payment) -> int:
+        method = payment_method.get_payment_type()
+        method = "card" if method == "Cartão" else "pix" if method == "Pix" else "cash"
         self.connect()
         self.execute(
             "INSERT INTO payment_method (name) VALUES (?)",
-            (payment_method.get_name(),),
+            (method,),
+        )
+        self.commit()
+        id = self.lastrowid()
+        self.close()
+        if method == "card":
+            self.insert_card(id, payment_method)
+        elif method == "pix":
+            self.insert_pix(id, payment_method)
+        elif method == "cash":
+            self.insert_cash(id, payment_method)
+        return id
+
+    def insert_card(self, id: int, payment_method: CreditCard) -> None:
+        self.connect()
+        self.execute(
+            "INSERT INTO card (id, name, flag, number) VALUES (?, ?, ?, ?)",
+            (
+                id,
+                payment_method.get_name(),
+                payment_method.get_flag(),
+                payment_method.get_number(),
+            ),
         )
         self.commit()
         self.close()
-        # TODO INSERT cash, pix and card
+
+    def insert_pix(self, id: int, payment_method: Pix) -> None:
+        self.connect()
+        self.execute(
+            "INSERT INTO pix (id, code) VALUES (?, ?)",
+            (
+                id,
+                payment_method.get_code(),
+            ),
+        )
+        self.commit()
+        self.close()
+
+    def insert_cash(self, id: int, payment_method: Cash) -> None:
+        self.connect()
+        self.execute(
+            "INSERT INTO cash (id) VALUES (?)",
+            (id,),
+        )
+        self.commit()
+        self.close()
 
     def populate_database(self, n: int = 10):
         import extra.random as rand

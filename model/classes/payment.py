@@ -5,7 +5,7 @@ class Payment:
         self._id = id
 
     def __str__(self):
-        f"Tipo de pagamento: {self.get_payment_type}"
+        return f"Tipo de pagamento: {self.get_payment_type()}"
 
     def get_payment_type(self):
         return self._payment_type
@@ -55,10 +55,12 @@ class CreditCard(Payment):
         self.set_number = number
 
     def __str__(self):
-        super().__str__()
-        +f"Nome do cartão: {self.get_name}"
-        +f"Numero do cartão: {self.get_number}"
-        +f"Bandeira do cartão: {self.get_flag}"
+        return (
+            super().__str__()
+            + f"Nome do cartão: {self.get_name}"
+            + f"Numero do cartão: {self.get_number}"
+            + f"Bandeira do cartão: {self.get_flag}"
+        )
 
 
 class Pix(Payment):
@@ -66,7 +68,6 @@ class Pix(Payment):
         super().__init__(payment_type, id)
         self._payment_type = payment_type
         self._code = code
-        self._id = id
 
     def get_code(self):
         return self._code

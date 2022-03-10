@@ -26,3 +26,9 @@ class SaleController:
 
     def get_all_sales_paid_via_pix(self):
         return self.db.select_all_sales_paid_via_pix()
+
+    def insert_payment(self, payment: Sale) -> int:
+        return self.db.insert_payment_method(payment)
+
+    def insert_sale(self, sale: Sale):
+        return self.db.insert_sale(sale)
