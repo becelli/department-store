@@ -9,10 +9,6 @@ from model.classes.user import Customer, Seller, User
 
 
 class Database(object):
-    """
-    Database class.
-    """
-
     def __init__(self, db_name):
         """
         Initialize the database.
@@ -440,7 +436,7 @@ class Database(object):
             return None
 
         product = self._select_product_data_by_id(id)
-        provider = self._select_provider_data_by_id(product["provider_id"])
+        provider = self.select_provider_by_id(product["provider_id"])
         return Electronic(
             name=product["name"],
             description=product["description"],
@@ -459,7 +455,7 @@ class Database(object):
             return None
 
         product = self._select_product_data_by_id(id)
-        provider = self._select_provider_data_by_id(product["provider_id"])
+        provider = self.select_provider_by_id(product["provider_id"])
         return Home_Appliance(
             name=product["name"],
             description=product["description"],
@@ -478,7 +474,7 @@ class Database(object):
             return None
 
         product = self._select_product_data_by_id(id)
-        provider = self._select_provider_data_by_id(product["provider_id"])
+        provider = self.select_provider_by_id(product["provider_id"])
         return Clothing(
             name=product["name"],
             description=product["description"],
@@ -559,15 +555,19 @@ class Database(object):
         if query is None:
             return None
         sale_itens: list[SaleItem] = []
-        for i in query:
-            [id, _, product_id, quantity] = i
-            sale_itens.append(
-                SaleItem(
-                    product=self.select_product_by_id(product_id),
-                    quantity=quantity,
-                    id=id,
+        iterator = iter(query)
+        while True:
+            try:
+                [id, _, product_id, quantity] = next(iterator)
+                sale_itens.append(
+                    SaleItem(
+                        product=self.select_product_by_id(product_id),
+                        quantity=quantity,
+                        id=id,
+                    )
                 )
-            )
+            except StopIteration:
+                break
         return sale_itens
 
     def select_sale_by_id(self, id: int) -> Sale:
@@ -820,10 +820,9 @@ class Database(object):
     def select_most_sold_products(self, n: int = 10) -> list[Product]:
         self.connect()
         self.execute(
-            f"SELECT id, COUNT(*) AS total FROM sale GROUP BY id ORDER BY total DESC LIMIT {n}"
+            f"SELECT product_id, quantity FROM sale_item GROUP BY product_id ORDER BY quantity DESC LIMIT {n}"
         )
         products = [x[0] for x in self.fetch_all()]
-        print(products)  # TODO remove it. Just checking if it returns only one value.
         self.close()
         return self._iterator_append(products, self.select_product_by_id)
 
@@ -943,7 +942,7 @@ class Database(object):
     def select_all_payment_methods(self) -> list[Payment]:
         self.connect()
         self.execute("SELECT id FROM payment_method")
-        payment_methods = [x[0] for x in self.fetch_all()]
+        payment_methods = [x[0] for x in self.fetch_all()]  # iterator
         self.close()
         return self._iterator_append(payment_methods, self.select_payment_method_by_id)
 

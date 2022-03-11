@@ -36,7 +36,12 @@ class TextOutput:
                 s = str(text)
             else:
                 s = ""
-                for i in text:
-                    s += str(i) + "\n\n"
+                iterator = iter(text)
+                while True:
+                    try:
+                        s += str(next(iterator)) + "\n\n"
+                    except StopIteration:
+                        break
+
         tex.insert(tk.END, s)
         tex.see(tk.END)

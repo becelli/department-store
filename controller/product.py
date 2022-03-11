@@ -35,3 +35,13 @@ class ProductController:
 
     def add_product(self, product: Product):
         return self.db.insert_product(product)
+
+    def FactoryProduct(self, product_type: str, **kwargs):
+        if product_type == "food":
+            return Food(**kwargs)
+        elif product_type == "clothing":
+            return Clothing(**kwargs)
+        elif product_type == "electronic":
+            return Electronic(**kwargs)
+        elif product_type == "home appliance":
+            return Home_Appliance(**kwargs)

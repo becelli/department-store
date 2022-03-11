@@ -65,16 +65,14 @@ class Sale:
     def __str__(self):
         customer = self.get_customer()
         seller = self.get_seller()
-        # itens = [
-        #     f"{item.get_quantity()}x {item.get_product().get_price()} - {item.get_product().get_name()}\n"
-        #     for item in self.get_itens()
-        # ]
-        itens = "".join(
-            [
-                f"{item.get_quantity()}x {item.get_product().get_price()} - {item.get_product().get_name()}\n"
-                for item in self.get_itens()
-            ]
-        )
+        iterator = iter(self.get_itens())
+        itens = ""
+        while True:
+            try:
+                item: SaleItem = next(iterator)
+                itens += f"{item.get_quantity()}x {item.get_product().get_price()} - {item.get_product().get_name()}\n"
+            except StopIteration:
+                break
 
         return (
             f"Venda {self.get_id()}:"

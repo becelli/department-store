@@ -1,29 +1,34 @@
 from datetime import datetime as date
-from random import Random
+from email import iterators
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import messagebox
-from typing import Text
-
 from controller.product import ProductController
 from controller.provider import ProviderController
 from controller.sale import SaleController
 from controller.user import UserController
 from extra.random import RandomObjectInfo
-from model.classes.product import (
-    Clothing,
-    Electronic,
-    Food,
-    Home_Appliance,
-    Product,
-    StrategyProduct,
-)
+from model.classes.product import Product, ProductStrategy
 from model.classes.provider import Provider
 from model.classes.user import Customer, Seller
-from model.classes.payment import Cash, CreditCard, Payment, Pix
+from model.classes.payment import Cash, CreditCard, Pix
 from model.classes.sale import Sale, SaleItem
 from view.output import TextOutput
 from view.window import CenterWindow
+
+
+def show_errors(errors):
+    if len(errors) > 0:
+        iterator = iter(errors)
+        while True:
+            try:
+                error = next(iterator)
+                messagebox.showerror("Erro", error)
+            except StopIteration:
+                break
+        return True
+    else:
+        return False
 
 
 class GUI:
@@ -217,18 +222,23 @@ class UserUI:
         # padding at top
         tk.Label(self.gui, text="").grid(row=0, column=0, columnspan=2)
         # fields
-        for field in fields:
-            index = fields.index(field)  # index of field
-            # Name of field
-            label = tk.Label(self.gui, text=field, width=20, anchor="w")
-            label.grid(row=index + 1, column=0)
-            # Entry of field
-            self.entries[field] = ttk.Entry(self.gui, width=30)
-            self.entries[field].grid(row=(index + 1), column=1, sticky=tk.W)
-            self.entries[field].insert(0, placeholders[index])
-            # Focus on first field
-            if index == 0:
-                self.entries[field].focus()
+        iterator = iter(fields)
+        while True:
+            try:
+                field = next(iterator)
+                index = fields.index(field)  # index of field
+                # Name of field
+                label = tk.Label(self.gui, text=field, width=20, anchor="w")
+                label.grid(row=index + 1, column=0)
+                # Entry of field
+                self.entries[field] = ttk.Entry(self.gui, width=30)
+                self.entries[field].grid(row=(index + 1), column=1, sticky=tk.W)
+                self.entries[field].insert(0, placeholders[index])
+                # Focus on first field
+                if index == 0:
+                    self.entries[field].focus()
+            except StopIteration:
+                break
 
         btn = ttk.Button(self.gui, text="Cadastrar", command=lambda: self.try_insert())
         btn.grid(row=len(fields) + 2, column=1, sticky=tk.W, pady=10)
@@ -279,19 +289,23 @@ class UserUI:
         self.entries = {}
         # padding at top
         tk.Label(self.gui, text="").grid(row=0, column=0, columnspan=2)
-
-        for field in fields:
-            index = fields.index(field)  # index of field
-            # Name of field
-            label = tk.Label(self.gui, text=field, width=20, anchor="w")
-            label.grid(row=index + 1, column=0)
-            # Entry of field
-            self.entries[field] = ttk.Entry(self.gui, width=30)
-            self.entries[field].grid(row=(index + 1), column=1, sticky=tk.W)
-            self.entries[field].insert(0, placeholders[index])
-            # Focus on first field
-            if index == 0:
-                self.entries[field].focus()
+        iterator = iter(fields)
+        while True:
+            try:
+                field = next(iterator)
+                index = fields.index(field)  # index of field
+                # Name of field
+                label = tk.Label(self.gui, text=field, width=20, anchor="w")
+                label.grid(row=index + 1, column=0)
+                # Entry of field
+                self.entries[field] = ttk.Entry(self.gui, width=30)
+                self.entries[field].grid(row=(index + 1), column=1, sticky=tk.W)
+                self.entries[field].insert(0, placeholders[index])
+                # Focus on first field
+                if index == 0:
+                    self.entries[field].focus()
+            except StopIteration:
+                break
 
         btn = ttk.Button(self.gui, text="Cadastrar", command=lambda: self.try_insert())
         btn.grid(row=len(fields) + 2, column=1, sticky=tk.W, pady=10)
@@ -363,10 +377,8 @@ class UserUI:
 
     def try_insert(self):
         errors = self.validate_user_entries()
-        if len(errors) > 0:
-            for error in errors:
-                messagebox.showerror("Erro", error)
-
+        if show_errors(errors):
+            return
         else:
             if self.role == "seller":
                 self.userc.add_user(
@@ -399,7 +411,7 @@ class UserUI:
                         self.entries["Endereço"].get(),
                         str(self.entries["CEP"].get()),
                         self.entries["Email"].get(),
-                        self.entries["Cliente Ouro [Sim/Não]"].get().upper() == "Sim",
+                        self.entries["Cliente Ouro [Sim/Não]"].get().upper() == "SIM",
                     )
                 )
             messagebox.showinfo("Sucesso", "Usuário cadastrado com sucesso!")
@@ -407,26 +419,37 @@ class UserUI:
     def validate_user_entries(self):
         errors = []
         name = self.entries["Nome"].get()
-        for i in range(len(name)):
-            if name[i].isdigit():
-                errors.append("Nome não pode conter números")
+        iterator = iter(name)
+        while True:
+            try:
+                if not next(iterator).isalpha():
+                    errors.append("Nome não pode conter números")
+                    break
+            except StopIteration:
                 break
+
         if len(name) < 3:
             errors.append("Nome deve conter no mínimo 3 caracteres")
 
         cpf = self.entries["CPF"].get()
         if len(cpf) != 11:
             errors.append("CPF deve conter 11 caracteres")
-        for i in range(len(cpf)):
-            if not cpf[i].isdigit():
-                errors.append("CPF deve conter apenas números")
+        iterator = iter(cpf)
+        while True:
+            try:
+                if next(iterator).isdigit():
+                    errors.append("CPF deve conter apenas números")
+            except StopIteration:
                 break
         rg = self.entries["RG"].get()
         if len(rg) != 9:
             errors.append("RG deve conter 9 caracteres")
-        for i in range(len(rg)):
-            if not rg[i].isdigit():
-                errors.append("RG deve conter apenas números")
+        iterator = iter(rg)
+        while True:
+            try:
+                if next(iterator).isdigit():
+                    errors.append("CPF deve conter apenas números")
+            except StopIteration:
                 break
 
         birth_date = self.entries["Data de Nascimento"].get()
@@ -462,12 +485,17 @@ class UserUI:
                 errors.append("Salário não pode ser vazio")
             if len(salary) < 3:
                 errors.append("Salário deve conter no mínimo 3 caracteres")
-            for i in range(len(salary)):
-                if not salary[i].isdigit() and salary[i] != "." and salary[i] != ",":
-                    errors.append("Salário deve conter apenas números")
+            iterator = iter(salary)
+            while True:
+                try:
+                    c = next(iterator)
+                    if c.isdigit() or c:
+                        errors.append("Salário deve conter apenas números")
+                        break
+                except StopIteration:
                     break
-            if salary[-1] == "." or salary[-1] == ",":
-                errors.append("Salário deve conter apenas números")
+            if salary.count(".") > 1:
+                errors.append("Salário deve conter apenas um ponto")
 
             pis = self.entries["PIS"].get()
             if len(pis) != 11:
@@ -491,7 +519,7 @@ class UserUI:
                 errors.append("Cliente Ouro não pode ser vazio")
             if len(is_golden_client) != 3:
                 errors.append("Cliente Ouro deve preenchido com Sim ou Não")
-            if is_golden_client not in ["Sim", "Não"]:
+            if is_golden_client.upper() not in ["SIM", "NÃO", "NAO"]:
                 errors.append("Cliente Ouro deve preenchido com Sim ou Não")
         return errors
 
@@ -544,18 +572,23 @@ class ProductUI:
         # padding at top
         tk.Label(self.gui, text="").grid(row=0, column=0, columnspan=2)
         # fields
-        for field in fields:
-            index = fields.index(field)  # index of field
-            # Name of field
-            label = tk.Label(self.gui, text=field, width=25, anchor="w")
-            label.grid(row=index + 1, column=0)
-            # Entry of field
-            self.entries[field] = ttk.Entry(self.gui, width=30)
-            self.entries[field].grid(row=(index + 1), column=1, sticky=tk.W)
-            self.entries[field].insert(0, placeholders[index])
-            # Focus on first field
-            if index == 0:
-                self.entries[field].focus()
+        iterator = iter(fields)
+        while True:
+            try:
+                field = next(iterator)
+                index = fields.index(field)  # index of field
+                # Name of field
+                label = tk.Label(self.gui, text=field, width=20, anchor="w")
+                label.grid(row=index + 1, column=0)
+                # Entry of field
+                self.entries[field] = ttk.Entry(self.gui, width=30)
+                self.entries[field].grid(row=(index + 1), column=1, sticky=tk.W)
+                self.entries[field].insert(0, placeholders[index])
+                # Focus on first field
+                if index == 0:
+                    self.entries[field].focus()
+            except StopIteration:
+                break
 
         label = tk.Label(self.gui, text="Fornecedor", width=25, anchor="w")
         label.grid(row=len(fields) + 2, column=0)
@@ -646,7 +679,7 @@ class ProductUI:
 
     def _sort_and_display(self, products, title: str):
         self.gui.destroy()
-        strategy = StrategyProduct()
+        strategy = ProductStrategy()
         if self.sort_method.get() == "Bubblesort":
             products = strategy.sort("Bubblesort", products)
         elif self.sort_method.get() == "Insertionsort":
@@ -655,63 +688,29 @@ class ProductUI:
 
     def try_insert(self):
         errors = self._validate_fields_products()
-        if errors:
-            messagebox.showinfo("Erro", "\n".join(errors))
+        if show_errors(errors):
+            return
         else:
             c = ProductController(self.db)
             pc = ProviderController(self.db)
             provider = pc.get_provider_by_id(self.provider.get().split(" - ")[0])
-            if self.type == "food":
-                c.add_product(
-                    Food(
-                        self.entries["Nome"].get(),
-                        self.entries["Descrição"].get(),
-                        self.entries["Data de Fabricação"].get(),
-                        self.entries["Preço"].get(),
-                        provider,
-                        self.entries["Está disponível? [Sim/Não]"].get(),
-                    )
-                )
-            elif self.type == "clothing":
-                c.add_product(
-                    Clothing(
-                        self.entries["Nome"].get(),
-                        self.entries["Descrição"].get(),
-                        self.entries["Data de Fabricação"].get(),
-                        self.entries["Preço"].get(),
-                        provider,
-                        self.entries["Está disponível? [Sim/Não]"].get(),
-                    )
-                )
-            elif self.type == "electronic":
-                c.add_product(
-                    Electronic(
-                        self.entries["Nome"].get(),
-                        self.entries["Descrição"].get(),
-                        self.entries["Data de Fabricação"].get(),
-                        self.entries["Preço"].get(),
-                        provider,
-                        self.entries["Está disponível? [Sim/Não]"].get(),
-                    )
-                )
-            elif self.type == "home appliance":
-                c.add_product(
-                    Home_Appliance(
-                        self.entries["Nome"].get(),
-                        self.entries["Descrição"].get(),
-                        self.entries["Data de Fabricação"].get(),
-                        self.entries["Preço"].get(),
-                        provider,
-                        self.entries["Está disponível? [Sim/Não]"].get(),
-                    )
-                )
+            product = c.FactoryProduct(
+                self.type,
+                name=self.entries["Nome"].get(),
+                description=self.entries["Descrição"].get(),
+                fabrication_date=self.entries["Data de Fabricação"].get(),
+                price=self.entries["Preço"].get(),
+                provider=provider,
+                is_available=self.entries["Está disponível? [Sim/Não]"].get(),
+            )
+            c.add_product(product)
             messagebox.showinfo("Sucesso", "Produto cadastrado com sucesso")
             self.gui.destroy()
 
     def _validate_fields_products(self):
         description = self.entries["Descrição"].get()
         name = self.entries["Nome"].get()
-        fabrication_date = self.entries["Data de fabricação"].get()
+        fabrication_date = self.entries["Data de Fabricação"].get()
         price = self.entries["Preço"].get()
         avaliable = self.entries["Está disponível? [Sim/Não]"].get()
         errors = []
@@ -723,15 +722,11 @@ class ProductUI:
             errors.append("Nome deve conter no mínimo 2 caracteres")
         if len(name) > 50:
             errors.append("Nome deve conter no máximo 50 caracteres")
-        for i in range(len(name)):
-            if name[i].isdigit():
-                errors.append("Nome não pode conter números")
-                break
 
         # validar disponível
         if avaliable is None:
             errors.append("Selecione ao menos uma das opções")
-        if avaliable.get() != "Sim" and avaliable.get() != "Não":
+        if avaliable not in ["Sim", "Não"]:
             errors.append("Selecione ao menos uma das opções: Sim ou Não")
 
         # validar preço
@@ -748,20 +743,16 @@ class ProductUI:
             errors.append("Descrição deve conter no mínimo 3 caracteres")
         if len(description) > 500:
             errors.append("Descrição deve conter no máximo 500 caracteres")
-        for i in range(len(description)):
-            if description[i].isdigit():
-                errors.append("Descrição não pode conter números")
-                break
 
         # validar data de fabricação
         if fabrication_date is None:
             errors.append("Data de fabricação não pode ser vazia")
-        if len(fabrication_date) != 10:
-            errors.append("Data de fabricação deve conter 10 caracteres")
+        if len(fabrication_date) != 4:
+            errors.append("Data de fabricação deve conter 4 caracteres")
         try:
-            date.strptime(fabrication_date, "%Y-%m-%d")
+            date.strptime(fabrication_date, "%Y")
         except ValueError:
-            errors.append("Data de fabricação deve estar no formato YYYY-MM-DD")
+            errors.append("Data de fabricação deve estar no formato AAAA")
 
         return errors
 
@@ -800,18 +791,24 @@ class ProviderUI:
         # padding at top
         tk.Label(self.gui, text="").grid(row=0, column=0, columnspan=2)
 
-        for field in fields:
-            index = fields.index(field)  # index of field
-            # Name of field
-            label = tk.Label(self.gui, text=field, width=20, anchor="w")
-            label.grid(row=index + 1, column=0)
-            # Entry of field
-            self.entries[field] = ttk.Entry(self.gui, width=30)
-            self.entries[field].grid(row=(index + 1), column=1, sticky=tk.W)
-            self.entries[field].insert(0, placeholders[index])
-            # Focus on first field
-            if index == 0:
-                self.entries[field].focus()
+        # fields
+        iterator = iter(fields)
+        while True:
+            try:
+                field = next(iterator)
+                index = fields.index(field)  # index of field
+                # Name of field
+                label = tk.Label(self.gui, text=field, width=20, anchor="w")
+                label.grid(row=index + 1, column=0)
+                # Entry of field
+                self.entries[field] = ttk.Entry(self.gui, width=30)
+                self.entries[field].grid(row=(index + 1), column=1, sticky=tk.W)
+                self.entries[field].insert(0, placeholders[index])
+                # Focus on first field
+                if index == 0:
+                    self.entries[field].focus()
+            except StopIteration:
+                break
 
         btn = ttk.Button(self.gui, text="Cadastrar", command=lambda: self.try_insert())
         btn.grid(row=len(fields) + 2, column=1, sticky=tk.W, pady=10)
@@ -854,9 +851,9 @@ class ProviderUI:
             messagebox.showinfo("Aviso", "não há fornecedores cadastrados")
 
     def try_insert(self):
-        errors = self._validate_fields()
-        if errors:
-            messagebox.showinfo("Erro", "\n".join(errors))
+        errors = self._validate_fields_provider()
+        if show_errors(errors):
+            return
         else:
             c = ProviderController(self.db)
             c.add_provider(
@@ -873,22 +870,36 @@ class ProviderUI:
             self.gui.destroy()
 
     def _validate_fields_provider(self):
+        errors = []
+        iterator = iter(self.entries)
+        while True:
+            try:
+                field = next(iterator)
+                if not field.get():
+                    errors.append(f"O campo {field} não pode estar vazio")
+            except StopIteration:
+                break
+
         cnpj = self.entries["CNPJ"].get()
         name = self.entries["Nome"].get()
         description = self.entries["Descrição"].get()
-        email = self.entries["Email".get()]
+        email = self.entries["Email"].get()
         phone = self.entries["Telefone"].get()
         address = self.entries["Endereço"].get()
-        errors = []
 
         # validar CNPJ
         if cnpj is None:
             errors.append("CNPJ não deve estar vazio")
         if len(cnpj) != 14:
             errors.append("CNPJ deve conter 14 digitos numéricos")
-        for c in str(cnpj):
-            if c not in "0123456789":
-                errors.append("CNPJ deve conter apenas números")
+        iterator = iter(cnpj)
+        while True:
+            try:
+                if not next(iterator).isdigit():
+                    errors.append("CNPJ deve conter apenas números")
+                    break
+            except StopIteration:
+                break
 
         # validar nome
 
@@ -898,9 +909,6 @@ class ProviderUI:
             errors.append(
                 "Nome deve conter no mínimo 3 caracteres e no máximo 50 caracteres"
             )
-        for i in range(len(name)):
-            if name[i].isdigit():
-                errors.append("Nome não deve conter números")
 
         # validar descrição
         if description is None:
@@ -909,10 +917,6 @@ class ProviderUI:
             errors.append("Descrição deve conter no mínimo 3 caracteres")
         if len(description) > 500:
             errors.append("Descrição deve conter no máximo 500 caracteres")
-        for i in range(len(description)):
-            if description[i].isdigit():
-                errors.append("Descrição não pode conter números")
-                break
 
         # validar email
         if email is None:
@@ -927,19 +931,20 @@ class ProviderUI:
         # validar telefone
         if phone is None:
             errors.append("Telefone não deve estar vazio")
-        if len(phone) != 9:
-            errors.append("Telefone deve conter nove digitos")
-        for c in str(phone):
-            if c not in "abcdefghijklmnopqrstuvwxyz":
-                errors.append("Telefone deve conter apenas números")
+        if len(phone) != 11:
+            errors.append("Telefone deve conter onze digitos")
+        while True:
+            try:
+                if not next(iterator).isdigit():
+                    errors.append("Telefone deve conter apenas números")
+                    break
+            except StopIteration:
+                break
 
         # validar enedereço
         if len(address) < 5:
             errors.append("Endereço deve conter no mínimo 5 caracteres")
 
-        for field in self.entries:
-            if not self.entries[field].get():
-                errors.append(f"O campo {field} não pode estar vazio")
         return errors
 
 
@@ -1016,18 +1021,28 @@ class SaleUI:
         # Count equal products
         products: list[Product] = self.products
         count = {}
-        for p in products:
-            if p.get_id() in count:
-                count[p.get_id()] += 1
-            else:
-                count[p.get_id()] = 1
+        iterator = iter(products)
+        while True:
+            try:
+                pid = next(iterator).get_id()
+                if pid in count:
+                    count[pid] += 1
+                else:
+                    count[pid] = 1
+            except StopIteration:
+                break
 
         # Create SaleItem
         self.sale_items = []
-        for i in count:
-            product = ProductController(self.db).get_product_by_id(i)
-            quantity = count[i]
-            self.sale_items.append(SaleItem(product, quantity))
+        iterator = iter(count)
+        while True:
+            try:
+                i = next(iterator)
+                product = ProductController(self.db).get_product_by_id(i)
+                quantity = count[i]
+                self.sale_items.append(SaleItem(product, quantity))
+            except StopIteration:
+                break
 
         # Create Sale
         customer_id = self.customers.get().split(" - ")[0]
@@ -1091,8 +1106,13 @@ class SaleUI:
         try:
             quantity = int(self.quantity.get())
             selected = ProductController(self.db).get_product_by_id(product_id)
-            for _ in range(quantity):
-                self.products.append(selected)
+            iterator = iter(range(quantity))
+            while True:
+                try:
+                    next(iterator)
+                    self.products.append(selected)
+                except StopIteration:
+                    break
             self._update_price()
         except ValueError:
             messagebox.showinfo("Erro", "Quantidade inválida")
@@ -1382,9 +1402,8 @@ class SaleUI:
 
     def _try_insert(self):
         errors = self._validate_payment_entries()
-        if errors:
-            for error in errors:
-                messagebox.showerror(title="Erro", message=error)
+        if show_errors(errors):
+            return
         else:
             c = SaleController(self.db)
             payment = None

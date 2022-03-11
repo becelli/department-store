@@ -28,12 +28,12 @@ class User(ABC):
     def __str__(self):
         return (
             f"Usuário {self.get_id()}: {self.get_name()}"
-            f"\nRG: {self.get_rg()}"
-            f"\nCPF: {self.get_cpf()}"
-            f"\nEmail: {self.get_email()}"
-            f"\nCEP: {self.get_zipcode()}"
-            f"\nEndereço: {self.get_address()}"
-            f"\nNascimento: {self.get_birthdate()}"
+            + f"\nCPF: {self.get_cpf()}"
+            + f"\nRG: {self.get_rg()}"
+            + f"\nD. Nascimento: {self.get_birthdate()}"
+            + f"\nEndereço: {self.get_address()}"
+            + f"\nCEP: {self.get_zipcode()}"
+            + f"\nEmail: {self.get_email()}"
         )
 
     def get_name(self):

@@ -21,11 +21,11 @@ class Provider:  # Fornecedor
     def __str__(self):
         return (
             f"Fornecedor {self._id}: {self._name}"
-            f"\n CNPJ: {self._cnpj}"
-            f"\n Email: {self._email}"
-            f"\n Telefone: {self._phone}"
-            f"\n Endereço: {self._address}"
-            f"\n Descrição: {self._description}"
+            + f"\nCNPJ: {self._cnpj}"
+            + f"\nDescrição: {self._description}"
+            + f"\nEmail: {self._email}"
+            + f"\nTelefone: {self._phone}"
+            + f"\nEndereço: {self._address}"
         )
 
     def get_id(self):

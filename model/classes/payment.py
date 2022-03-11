@@ -57,9 +57,9 @@ class CreditCard(Payment):
     def __str__(self):
         return (
             super().__str__()
-            + f"Nome do cartão: {self.get_name}"
-            + f"Numero do cartão: {self.get_number}"
-            + f"Bandeira do cartão: {self.get_flag}"
+            + f"\nNome do cartão: {self.get_name}"
+            + f"\nNumero do cartão: {self.get_number}"
+            + f"\nBandeira do cartão: {self.get_flag}"
         )
 
 

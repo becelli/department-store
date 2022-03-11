@@ -28,7 +28,7 @@ class Product(ABC):
             f"\nDescrição: {self._description}"
             f"\nFabricação: {self._fabrication_date}"
             f"\nPreço: {round(self._price, 2)}"
-            # f"\nFornecedor: {self._provider.get_name()}"
+            f"\nFornecedor: {self._provider.get_name()}"
             f"\nDisponível: {'Sim' if self._is_available else 'Não'}\n"
         )
 
@@ -155,12 +155,12 @@ class Clothing(Product):
         return self._price * 1.0125
 
 
-class StrategyProduct:
+class ProductStrategy:
     def sort(self, method: str, array: list[Product]) -> list[Product]:
         if method == "Bubblesort":
-            return self._bubble_sort(array)
+            return self._bubble_sort(array)  # Strategy sort A
         elif method == "Insertionsort":
-            return self._insertion_sort(array)
+            return self._insertion_sort(array)  # Strategy sort Bs
 
     def _bubble_sort(self, array: list[Product]) -> list:
         for _ in range(len(array)):
