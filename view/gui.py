@@ -1,5 +1,6 @@
 from datetime import datetime as date
 from email import iterators
+import string
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import messagebox
@@ -27,8 +28,7 @@ def show_errors(errors):
             except StopIteration:
                 break
         return True
-    else:
-        return False
+    return False
 
 
 class GUI:
@@ -43,15 +43,12 @@ class GUI:
         self.root.geometry("600x400")
         self.root.configure(background="#ffffff")
         CenterWindow(self.root)
-        # Protocols
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-        self.root.bind("<Escape>", lambda: self.on_closing)
-
         self.init_menu()
 
     def on_closing(self):
-        # if messagebox.askokcancel("Sair", "Deseja realmente sair?"):
-        self.root.destroy()
+        if messagebox.askokcancel("Sair", "Deseja realmente sair?"):
+            self.root.destroy()
 
     def init_menu(self):
         menubar = tk.Menu(self.root)
@@ -422,7 +419,8 @@ class UserUI:
         iterator = iter(name)
         while True:
             try:
-                if not next(iterator).isalpha():
+                char = next(iterator).upper()
+                if char not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ ":
                     errors.append("Nome não pode conter números")
                     break
             except StopIteration:
@@ -434,21 +432,24 @@ class UserUI:
         cpf = self.entries["CPF"].get()
         if len(cpf) != 11:
             errors.append("CPF deve conter 11 caracteres")
+
         iterator = iter(cpf)
         while True:
             try:
-                if next(iterator).isdigit():
+                char = next(iterator)
+                if char not in "0123456789":
                     errors.append("CPF deve conter apenas números")
             except StopIteration:
                 break
+
         rg = self.entries["RG"].get()
         if len(rg) != 9:
             errors.append("RG deve conter 9 caracteres")
         iterator = iter(rg)
         while True:
             try:
-                if next(iterator).isdigit():
-                    errors.append("CPF deve conter apenas números")
+                if next(iterator) not in "0123456789":
+                    errors.append("RG deve conter apenas números")
             except StopIteration:
                 break
 
@@ -489,7 +490,7 @@ class UserUI:
             while True:
                 try:
                     c = next(iterator)
-                    if c.isdigit() or c:
+                    if c not in "0123456789.":
                         errors.append("Salário deve conter apenas números")
                         break
                 except StopIteration:
@@ -871,15 +872,6 @@ class ProviderUI:
 
     def _validate_fields_provider(self):
         errors = []
-        iterator = iter(self.entries)
-        while True:
-            try:
-                field = next(iterator)
-                if not field.get():
-                    errors.append(f"O campo {field} não pode estar vazio")
-            except StopIteration:
-                break
-
         cnpj = self.entries["CNPJ"].get()
         name = self.entries["Nome"].get()
         description = self.entries["Descrição"].get()
@@ -1443,4 +1435,4 @@ class SaleUI:
                 errors.append("Código Pix não preenchido")
             if len(self.pix_code.get()) != 32:
                 errors.append("Código Pix deve ter 32 caracteres")
-            return errors
+        return errors
