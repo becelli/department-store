@@ -20,7 +20,7 @@ from model.classes.product import (
 )
 from model.classes.provider import Provider
 from model.classes.user import Customer, Seller
-from model.classes.payment import Cash, CreditCard, Payment
+from model.classes.payment import Cash, CreditCard, Payment, Pix
 from model.classes.sale import Sale, SaleItem
 from view.output import TextOutput
 from view.window import CenterWindow
@@ -239,6 +239,7 @@ class UserUI:
         self.gui.title("Cadastro de Vendedor")
         self.gui.geometry("420x280")
         CenterWindow(self.gui)
+
         fields = (
             "Nome",
             "CPF",
@@ -446,13 +447,13 @@ class UserUI:
 
         email = self.entries["Email"].get()
         if email is None:
-            errors.append("Email cannot be empty")
+            errors.append("Email não pode estar vazio")
         if "@" not in email:
-            errors.append("Email must contain @")
+            errors.append("Email deve conter @")
         if "." not in email:
-            errors.append("Email must contain .")
+            errors.append("Email deve conter .")
         if email.count("@") > 1:
-            errors.append("Email must contain only one @")
+            errors.append("Email deve conter apenas um @")
 
         if self.role == "seller":
 
@@ -653,7 +654,7 @@ class ProductUI:
         TextOutput(self.root).display(products, title)
 
     def try_insert(self):
-        errors = self.validate_fields_products()
+        errors = self._validate_fields_products()
         if errors:
             messagebox.showinfo("Erro", "\n".join(errors))
         else:
@@ -707,14 +708,13 @@ class ProductUI:
             messagebox.showinfo("Sucesso", "Produto cadastrado com sucesso")
             self.gui.destroy()
 
-    def validate_fields_products(self):
+    def _validate_fields_products(self):
         description = self.entries["Descrição"].get()
         name = self.entries["Nome"].get()
         fabrication_date = self.entries["Data de fabricação"].get()
         price = self.entries["Preço"].get()
         avaliable = self.entries["Está disponível? [Sim/Não]"].get()
         errors = []
-        flag = 0
 
         # validar nome
         if name is None:
@@ -872,13 +872,75 @@ class ProviderUI:
             messagebox.showinfo("Sucesso", "Fornecedor cadastrado com sucesso")
             self.gui.destroy()
 
-    def _validate_fields(self):
+    def _validate_fields_provider(self):
+        cnpj = self.entries["CNPJ"].get()
+        name = self.entries["Nome"].get()
+        description = self.entries["Descrição"].get()
+        email = self.entries["Email".get()]
+        phone = self.entries["Telefone"].get()
+        address = self.entries["Endereço"].get()
         errors = []
+
+        # validar CNPJ
+        if cnpj is None:
+            errors.append("CNPJ não deve estar vazio")
+        if len(cnpj) != 14:
+            errors.append("CNPJ deve conter 14 digitos numéricos")
+        for c in str(cnpj):
+            if c not in "0123456789":
+                errors.append("CNPJ deve conter apenas números")
+
+        # validar nome
+
+        if name is None:
+            errors.append("nome não deve estar vazio")
+        if len(name) < 3 & len(name) > 50:
+            errors.append(
+                "Nome deve conter no mínimo 3 caracteres e no máximo 50 caracteres"
+            )
+        for i in range(len(name)):
+            if name[i].isdigit():
+                errors.append("Nome não deve conter números")
+
+        # validar descrição
+        if description is None:
+            errors.append("Descrição não pode estar vazia")
+        if len(description) < 3:
+            errors.append("Descrição deve conter no mínimo 3 caracteres")
+        if len(description) > 500:
+            errors.append("Descrição deve conter no máximo 500 caracteres")
+        for i in range(len(description)):
+            if description[i].isdigit():
+                errors.append("Descrição não pode conter números")
+                break
+
+        # validar email
+        if email is None:
+            errors.append("Email não pode estar vazio")
+        if "@" not in email:
+            errors.append("Email deve conter @")
+        if "." not in email:
+            errors.append("Email deve conter .")
+        if email.count("@") > 1:
+            errors.append("Email deve conter apenas um @")
+
+        # validar telefone
+        if phone is None:
+            errors.append("Telefone não deve estar vazio")
+        if len(phone) != 9:
+            errors.append("Telefone deve conter nove digitos")
+        for c in str(phone):
+            if c not in "abcdefghijklmnopqrstuvwxyz":
+                errors.append("Telefone deve conter apenas números")
+
+        # validar enedereço
+        if len(address) < 5:
+            errors.append("Endereço deve conter no mínimo 5 caracteres")
+
         for field in self.entries:
             if not self.entries[field].get():
                 errors.append(f"O campo {field} não pode estar vazio")
         return errors
-        # TODO validate fields
 
 
 class SaleUI:
@@ -1045,29 +1107,32 @@ class SaleUI:
     def get_sale_info(self):
         self.gui: tk.Toplevel = tk.Toplevel(self.root)
         self.gui.title("Obter informações das vendas")
-        self.gui.geometry("300x100")
+        self.gui.geometry("350x170")
         CenterWindow(self.gui)
-        r = 0
-        tk.Label(self.gui, text="").grid(row=0, column=0, columnspan=2)
-        tk.Label(self.gui, text="Selecione a venda desejada:").grid(row=r, column=0)
+        tk.Label(self.gui, text="Selecione a venda desejada:").pack(pady=10)
         sales = SaleController(self.db).get_all_sales()
         if sales:
 
             def display(sale: Sale):
-                return f"{sale.get_id()} - {sale.get_sell_date()}"
+                return f"{sale.get_id()} - Realizada em {str(sale.get_date())[:10]} por {sale.get_customer().get_name()} no valor de R${round(sale.calculate_total_value(), 2)}"
 
             self.sale = tk.StringVar(self.gui)
             self.sale.set(display(sales[0]))
             op = tk.OptionMenu(self.gui, self.sale, *[display(i) for i in sales])
             op.config(width=25)
-            op.grid(row=r, column=1)
-            r += 1
+            op.pack(pady=10)
             btn = ttk.Button(
                 self.gui,
                 text="Obter informações",
-                command=lambda: self._get_sale_info(),
+                command=lambda: TextOutput(self.gui).display(
+                    str(
+                        SaleController(self.db).get_sale_by_id(
+                            self.sale.get().split(" - ")[0]
+                        )
+                    )
+                ),
             )
-            btn.grid(row=r, column=0, sticky=tk.W, pady=10)
+            btn.pack(pady=10)
         else:
             messagebox.showinfo("Aviso", "Não existem vendas cadastradas")
 
@@ -1080,35 +1145,114 @@ class SaleUI:
             messagebox.showinfo("Aviso", "Esta venda não existe")
 
     def get_monthly_sales(self):
-        pass
+        self.gui: tk.Toplevel = tk.Toplevel(self.root)
+        self.gui.title("Obter vendas de um mês especifico")
+        self.gui.geometry("350x170")
+        CenterWindow(self.gui)
+        tk.Label(self.gui, text="Selecione a data da venda desejada: (AAAA-MM)").pack(
+            pady=10
+        )
+        self.month = tk.Entry(self.gui, width=30)
+        self.month.pack()
+        self.month.insert(0, date.today().strftime("%Y-%m"))
+
+        def _parse_date(datetime: str, format: str) -> date:
+            try:
+                return date.strptime(datetime, format)
+            except ValueError:
+                messagebox.showerror("Erro", "Data inválida")
+
+        def _show(sale):
+            if sale:
+                sales, total = sale
+                string = f"Vendas do mês {self.month.get()}:\n"
+                iterator = iter(sales)
+                while True:
+                    try:
+                        string += str(next(iterator)) + "\n"
+                    except StopIteration:
+                        break
+                string += f"\n\nTotal: R${round(total, 2)}"
+                TextOutput(self.root).display(
+                    string, f"Vendas do mês {self.month.get()}"
+                )
+            else:
+                messagebox.showinfo("Aviso", "Não existem vendas neste período")
+
+        def _show_sales():
+            mm, yy, = (
+                self.month.get(),
+                self.month.get(),
+            )
+            _show(
+                SaleController(self.db).get_all_sales_in_month(
+                    str(_parse_date(mm, "%Y-%m").month),
+                    str(_parse_date(yy, "%Y-%m").year),
+                )
+            )
+
+        button = tk.Button(
+            self.gui,
+            text="Obter vendas do mês",
+            command=_show_sales,
+        )
+        button.pack(pady=10)
 
     def get_all_sales_paid_via_cash(self):
         sale = SaleController(self.db).get_all_sales_paid_via_cash()
         if sale:
-            TextOutput(self.db).display(
-                sale, "Todas as vendas realizadas com cartão de crédito"
+            TextOutput(self.root).display(
+                sale, "Todas as vendas realizadas com dinheiro"
             )
         else:
             messagebox.showinfo(
-                "Aviso", "não foram realizadas vendas pagas em dinheiro"
+                "Aviso", "Não foram realizadas vendas pagas em dinheiro"
             )
 
     def get_all_sales_paid_via_card(self):
         sale = SaleController(self.db).get_all_sales_paid_via_card()
         if sale:
-            TextOutput(self.db).display(sale, "Todas as vendas realizadas com dinheiro")
+            TextOutput(self.root).display(sale, "Todas as vendas realizadas com cartão")
         else:
-            messagebox.showinfo("Aviso", "não foram realizadas vendas pagas via cartão")
+            messagebox.showinfo("Aviso", "Não foram realizadas vendas pagas via cartão")
 
     def get_all_sales_paid_via_pix(self):
         sale = SaleController(self.db).get_all_sales_paid_via_pix()
         if sale:
-            TextOutput(self.db).display(sale, "Tdoas as vendas realizadas com pix")
+            TextOutput(self.root).display(sale, "Todas as vendas realizadas com pix")
         else:
-            messagebox.showinfo("Aviso", "não foram realizadas vendas com Pix")
+            messagebox.showinfo("Aviso", "Não foram realizadas vendas com Pix")
 
     def get_customer_history(self):
-        pass
+        self.gui = tk.Toplevel(self.root)
+        self.gui.title("Obter histórico de compras")
+        self.gui.geometry("350x170")
+        CenterWindow(self.gui)
+        tk.Label(self.gui, text="Selecione o cliente desejado:").pack(pady=10)
+        customers = UserController(self.db).get_all_customers()
+        if customers:
+
+            def display(customer: Customer):
+                return f"{customer.get_id()} - {customer.get_name()}"
+
+            self.customer = tk.StringVar(self.gui)
+            self.customer.set(display(customers[0]))
+            op = tk.OptionMenu(
+                self.gui, self.customer, *[display(i) for i in customers]
+            )
+            op.config(width=25)
+            op.pack(pady=10)
+            btn = ttk.Button(
+                self.gui,
+                text="Obter histórico",
+                command=lambda: TextOutput(self.gui).display(
+                    SaleController(self.db).get_customer_history(
+                        self.customer.get().split(" - ")[0]
+                    ),
+                    f"Histórico do cliente {self.customer.get().split(' - ')[1]}",
+                ),
+            )
+            btn.pack(pady=10)
 
     def _select_payment(self):
         self.gui_payment = tk.Toplevel(self.root)
@@ -1164,37 +1308,23 @@ class SaleUI:
         ).grid(row=r, column=0, sticky=tk.W, pady=10, padx=75)
 
     def _pay_sale(self):
-        c = SaleController(self.db)
-        payment = None
         if self.payment.get() == "Dinheiro":
-            payment = Cash("Dinheiro")
-
+            self.type = "cash"
+            self._try_insert()
         elif self.payment.get() == "Cartão de Crédito":
             self._card_info_UI()
-            payment = CreditCard(
-                "Cartão",
-                self.card_holder.get(),
-                self.card_flag.get(),
-                self.card_number.get(),
-            )
-
         elif self.payment.get() == "Pix":
             self._pix_info_UI()
 
-        p_id = c.insert_payment(payment)
-        payment.set_id(p_id)
-        self.sale.set_payment_method(payment)
-        c.insert_sale(self.sale)
-        self.gui.destroy()
-        messagebox.showinfo("Aviso", "Venda realizada com sucesso")
-        self.gui_payment.destroy()
-
     def _card_info_UI(self):
+        self.type = "card"
         self.gui_card = tk.Toplevel(self.root)
         self.gui_card.title("Informações do Cartão")
-        self.gui_card.geometry("300x200")
+        self.gui_card.geometry("450x200")
         CenterWindow(self.gui_card)
-        [_, name, flag, number] = RandomObjectInfo.Credit_card_payment()
+        [_, name, flag, number] = RandomObjectInfo(
+            self.db, self.db, self.db
+        ).Credit_card_payment(self.sale.get_customer().get_name())
         r = 0
         tk.Label(self.gui_card, text="").grid(row=r, column=0, columnspan=2)
         r += 1
@@ -1206,57 +1336,92 @@ class SaleUI:
             row=r, column=0, sticky=tk.W
         )
         self.card_holder = tk.Entry(self.gui_card, width=25)
-        self.card_holder.set(name)
         self.card_holder.grid(row=r, column=1, sticky=tk.W)
+        self.card_holder.insert(0, name)
         r += 1
         tk.Label(self.gui_card, text="Número do cartão:").grid(
             row=r, column=0, sticky=tk.W
         )
         self.card_number = tk.Entry(self.gui_card, width=25)
-        self.card_number.set(number)
+        self.card_number.insert(0, number)
         self.card_number.grid(row=r, column=1, sticky=tk.W)
         r += 1
         tk.Label(self.gui_card, text="Bandeira:").grid(row=r, column=0, sticky=tk.W)
         self.card_flag = tk.Entry(self.gui_card, width=25)
-        self.card_flag.set(flag)
         self.card_flag.grid(row=r, column=1, sticky=tk.W)
+        self.card_flag.insert(0, flag)
         r += 1
         btn = ttk.Button(
             self.gui_card,
             text="Pagar",
-            command=lambda: self._validate_payment_info("card"),
+            command=lambda: self._try_insert(),
         )
         btn.grid(row=r, column=0, sticky=tk.W, pady=10, padx=75)
 
     def _pix_info_UI(self):
+        self.type = "pix"
         self.gui_pix = tk.Toplevel(self.root)
-        self.gui_pix.title("Informações do Cartão")
-        self.gui_pix.geometry("300x150")
+        self.gui_pix.title("Código Pix")
+        self.gui_pix.geometry("400x150")
         CenterWindow(self.gui_pix)
-        [_, code] = RandomObjectInfo.Pix_payment()
+        [_, code] = RandomObjectInfo(self.db, self.db, self.db).Pix_payment()
         r = 0
-        tk.Label(self.gui_pix, text="").grid(row=r, column=0, columnspan=2)
+        tk.Label(self.gui_pix, text="Código Pix (32 caracteres)").pack(pady=10)
         r += 1
         self.pix_code = tk.Entry(self.gui_pix, width=25)
-        self.pix_code.set(code)
-        self.pix_code.grid(row=r, column=1, sticky=tk.W)
+        self.pix_code.pack(pady=10)
+        # self.pix_code.grid(row=r, column=1, sticky=tk.W)
+        self.pix_code.insert(0, code)
         r += 1
         btn = ttk.Button(
             self.gui_pix,
             text="Pagar",
-            command=lambda: self._validate_payment_info("pix"),
+            command=lambda: self._try_insert(),
         )
-        btn.grid(row=r, column=0, sticky=tk.W, pady=10, padx=75)
+        btn.pack(pady=10)
 
-    def _validate_payment_info(self, payment_type):
-        # payment_type could be "card" or "pix"
-        if (
-            self.card_holder.get() == ""
-            or self.card_number.get() == ""
-            or self.card_flag.get() == ""
-        ):
-            messagebox.showinfo("Aviso", "Preencha todos os campos")
+    def _try_insert(self):
+        errors = self._validate_payment_entries()
+        if errors:
+            for error in errors:
+                messagebox.showerror(title="Erro", message=error)
         else:
-            self._pay_sale()
+            c = SaleController(self.db)
+            payment = None
+            if self.type == "card":
+                payment = CreditCard(
+                    "Cartão",
+                    self.card_holder.get(),
+                    self.card_flag.get(),
+                    self.card_number.get(),
+                )
+            elif self.type == "pix":
+                payment = Pix("Pix", self.pix_code.get())
+            elif self.type == "cash":
+                payment = Cash("Dinheiro")
+            else:
+                raise Exception("Tipo de pagamento não definido")
+            p_id = c.insert_payment(payment)
+            payment.set_id(p_id)
+            self.sale.set_payment_method(payment)
+            c.insert_sale(self.sale)
+            messagebox.showinfo("Aviso", "Venda realizada com sucesso")
+            self.gui.destroy()
+            self.gui_payment.destroy()
 
-    # TODO validate pix info
+    def _validate_payment_entries(self):
+        errors = []
+        if self.type == "card":
+            if not self.card_holder.get():
+                errors.append("Nome do titular não preenchido")
+            if not self.card_number.get():
+                errors.append("Número do cartão não preenchido")
+            if not self.card_flag.get():
+                errors.append("Bandeira do cartão não preenchido")
+            return errors
+        elif self.type == "pix":
+            if not self.pix_code.get():
+                errors.append("Código Pix não preenchido")
+            if len(self.pix_code.get()) != 32:
+                errors.append("Código Pix deve ter 32 caracteres")
+            return errors

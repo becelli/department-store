@@ -354,7 +354,7 @@ class Database(object):
 
     def _select_payment_on_card_data_by_id(self, id: int) -> dict:
         self.connect()
-        self.execute(f"SELECT name, flag, number FROM credit_card WHERE id = {id}")
+        self.execute(f"SELECT name, flag, number FROM card WHERE id = {id}")
         query = self.fetch_one()
         self.close()
         if query is None:
@@ -754,10 +754,11 @@ class Database(object):
         self.execute("SELECT * FROM sale WHERE customer_id = ?", (id,))
         sales = [x[0] for x in self.fetch_all()]
         self.close()
-        return self._iterator_append(sales, self._select_sale_by_id)
+        return self._iterator_append(sales, self.select_sale_by_id)
 
     def select_best_seller_of_the_month(self, month: int, year: int) -> Seller:
-        # Select the seller with the most sales
+        month = str(month).zfill(2)
+        year = str(year).zfill(4)
         self.connect()
         self.execute(
             f"SELECT seller_id, COUNT(*) as total FROM sale WHERE date LIKE '{year}-{month}%' GROUP BY seller_id ORDER BY total DESC LIMIT 1"
@@ -777,11 +778,13 @@ class Database(object):
         return self._iterator_append(sales, self.select_sale_by_id)
 
     def select_all_sales_in_month(self, month: int, year: int):
+        month = str(month).zfill(2)
+        year = str(year).zfill(4)
         self.connect()
         self.execute(f"SELECT id FROM sale WHERE date LIKE '{year}-{month}%'")
         sales_ids = [x[0] for x in self.fetch_all()]
         self.close()
-        sales = self._iterator_append(sales_ids, self.select_sale_by_id)
+        sales: list[Sale] = self._iterator_append(sales_ids, self.select_sale_by_id)
 
         iterator = iter(sales)
         sum = 0
@@ -791,16 +794,16 @@ class Database(object):
                 sum += obj.calculate_total_value()
             except StopIteration:
                 break
-        return sum
+        return sales, sum
 
     def _select_all_sales_paid_with(self, table: str) -> list[Sale]:
         self.connect()
         self.execute(f"SELECT id FROM {table}")
         cash_ids = [x[0] for x in self.fetch_all()]
-        ids = ",".join(cash_ids)[1:-1]
+        ids = str(cash_ids).replace("[", "(").replace("]", ")")
+        ids = ids[:-2] + ")" if ids[-2] == "," else ids
 
-        print(ids)  # TODO remove it
-        self.execute(f"SELECT id FROM sale WHERE id IN ({ids})")
+        self.execute(f"SELECT id FROM sale WHERE id IN {ids}")
         sales = [x[0] for x in self.fetch_all()]
         self.close()
         return self._iterator_append(sales, self.select_sale_by_id)
@@ -809,7 +812,7 @@ class Database(object):
         return self._select_all_sales_paid_with("cash")
 
     def select_all_sales_paid_via_card(self) -> list[Sale]:
-        return self._select_all_sales_paid_with("credit_card")
+        return self._select_all_sales_paid_with("card")
 
     def select_all_sales_paid_via_pix(self) -> list[Sale]:
         return self._select_all_sales_paid_with("pix")
@@ -1028,8 +1031,3 @@ class Database(object):
             i += 1
 
         i = 0
-        # while i < n:  # Insert random sales
-        #     pass
-        # si = r.Sale_item()
-
-        # Insert random sales (by consequence, payments)

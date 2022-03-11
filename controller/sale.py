@@ -6,11 +6,8 @@ class SaleController:
     def __init__(self, db: str = "app.db"):
         self.db = Database(db)
 
-    def get_sale_item_by_id(self):
-        return self.db.select_sale_item_by_id()
-
-    def get_sale_by_id(self):
-        return self.db.select_sale_by_id()
+    def get_sale_by_id(self, id):
+        return self.db.select_sale_by_id(id)
 
     def get_all_sales(self) -> list[Sale]:
         return self.db.select_all_sales()
@@ -32,3 +29,6 @@ class SaleController:
 
     def insert_sale(self, sale: Sale):
         return self.db.insert_sale(sale)
+
+    def get_customer_history(self, id: int):
+        return self.db.select_customer_history_by_id(id)
