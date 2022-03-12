@@ -18,6 +18,7 @@ from view.output import TextOutput
 from view.window import CenterWindow
 
 
+
 def show_errors(errors):
     if len(errors) > 0:
         iterator = iter(errors)

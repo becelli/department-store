@@ -24,10 +24,11 @@ class Start(tk.Frame):
         ).pack(pady=5, padx=5)
         self.root.mainloop()
 
-    def main(self, db: str = "database.db"):
+    def main(self, db: str = "app.db"):
         self.root.destroy()
         db = "app.db" if db == "" else db
         admin = DatabaseController(db)
         admin.init_database()
-        admin.populate_database(35)
+        #admin.populate_database(35)
         GUI(db)
+        
